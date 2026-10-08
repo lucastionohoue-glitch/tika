@@ -124,6 +124,31 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <version>1.30.0</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-junit5-plugin</artifactId>
+            <version>1.2.3</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <targetClasses>
+            <param>org.apache.tika.mime.MediaType</param>
+            <param>org.apache.tika.io.FilenameUtils</param>
+          </targetClasses>
+          <targetTests>
+            <param>org.apache.tika.mime.MediaTypeTest</param>
+            <param>org.apache.tika.io.FilenameUtilsTest</param>
+          </targetTests>
+          <timestampedReports>false</timestampedReports>
+          <parseSurefireArgLine>false</parseSurefireArgLine>
+          <argLine>-Xmx4g -Djava.awt.headless=true</argLine>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>${checkstyle.plugin.version}</version>
