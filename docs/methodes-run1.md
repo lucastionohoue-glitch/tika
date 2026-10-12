@@ -1,16 +1,17 @@
-# Analyse par méthode – Run 1 (tests originaux)
+# Run 1 : couverture et mutants par méthode (tests originaux)
 
-Sources :
-- Couverture : rapport JaCoCo `tika-core/target/site/jacoco/jacoco.xml` (compteurs `LINE` et `BRANCH` par méthode).
-- Mutants : rapport PIT `docs/pit/run1` (PIT 1.30.0, mutateurs par défaut, tests `MediaTypeTest` et `FilenameUtilsTest`).
+Pour la couverture, on a pris les compteurs `LINE` et `BRANCH` de chaque méthode dans le rapport JaCoCo
+(`tika-core/target/site/jacoco/jacoco.xml`). Pour les mutants, on a utilisé le rapport PIT dans `docs/pit/run1`
+(PIT 1.30.0, mutateurs par défaut, avec seulement `MediaTypeTest` et `FilenameUtilsTest`). On a associé chaque
+mutant à sa méthode avec son numéro de ligne et son champ `Location`. Les totaux par classe sont les mêmes que
+dans `docs/pit/run1/RESUME.md`.
 
-Chaque mutant PIT a été rattaché à sa méthode à l'aide de son numéro de ligne et de son champ `Location`.
-Les totaux par classe correspondent à `docs/pit/run1/RESUME.md`.
+Attention, les deux outils n'ont pas roulé les mêmes tests. JaCoCo a été lancé avec tous les tests de `tika-core`,
+alors que PIT n'exécute que nos deux classes de test. Certains pourcentages JaCoCo sont donc plus hauts que la
+couverture réelle de `MediaTypeTest` et `FilenameUtilsTest`. Par exemple, JaCoCo donne 100 % pour `application`,
+`image` et `text`, mais PIT marque leurs mutants `NO_COVERAGE`.
 
-> **Limite :** le rapport JaCoCo a été produit avec l'ensemble des tests de `tika-core`, alors que PIT
-> n'exécute que `MediaTypeTest` et `FilenameUtilsTest`. Les pourcentages JaCoCo peuvent donc être plus
-> élevés que la couverture réelle de ces deux classes de test. Par exemple, `application`, `image` et
-> `text` sont couvertes à 100 % selon JaCoCo, mais leurs mutants sont `NO_COVERAGE` dans PIT.
+Les méthodes en gras sont celles qu'on a choisies.
 
 ## `org.apache.tika.mime.MediaType`
 
@@ -53,33 +54,38 @@ Les totaux par classe correspondent à `docs/pit/run1/RESUME.md`.
 | `normalize` | 69 | 100 % (10/10) | 100 % (8/8) | 0 | 0 |
 | `getName` | 108 | 100 % (9/9) | 88 % (7/8) | 0 | 0 |
 | `getSuffixFromPath` | 131 | 100 % (7/7) | 100 % (6/6) | 0 | 1 |
-| `getSanitizedEmbeddedFileName` | 145 | 94 % (31/33) | 83 % (15/18) | 2 | 3 |
+| **`getSanitizedEmbeddedFileName`** | 145 | 94 % (31/33) | 83 % (15/18) | 2 | 3 |
 | **`getSanitizedEmbeddedFilePath`** | 208 | 91 % (42/46) | 83 % (20/24) | 4 | 3 |
 | `resolveWithin` | 296 | 57 % (8/14) | 38 % (3/8) | 2 | 1 |
 | `getPrefixLength` (privé) | 319 | 83 % (5/6) | 30 % (3/10) | 6 | 2 |
 | `removeProtocol` | 330 | 100 % (7/7) | 100 % (4/4) | 0 | 0 |
-| **`getEmbeddedPath`** | 343 | 77 % (10/13) | 62 % (5/8) | 3 | 5 |
-| **`getEmbeddedName`** | 364 | 77 % (10/13) | 62 % (5/8) | 3 | 5 |
+| `getEmbeddedPath` (privé) | 343 | 77 % (10/13) | 62 % (5/8) | 3 | 5 |
+| `getEmbeddedName` (privé) | 364 | 77 % (10/13) | 62 % (5/8) | 3 | 5 |
 | `calculateExtension` | 392 | 88 % (7/8) | 75 % (3/4) | 1 | 0 |
 | `lookupExtension` | 407 | 71 % (5/7) | 50 % (1/2) | 1 | 0 |
 | **Total** | | | | **22** | **20** |
 
-## Méthodes ciblées
+## Pourquoi ces méthodes
 
-Les méthodes triviales (getters, `equals`, `hashCode`, `toString`, `compareTo`, fabriques d'une ligne) ont été écartées.
+On a laissé de côté les méthodes trop simples pour être intéressantes : les getters, `equals`, `hashCode`,
+`toString`, `compareTo` et les fabriques d'une seule ligne comme `text()` ou `image()`.
 
 ### MediaType
 
-| Méthode | Mutants vivants | Justification |
+| Méthode | Mutants vivants (sans couverture + survivants) | Pourquoi |
 |---|---|---|
-| `union` | 7 (5 sans couverture + 2 survivants) | Seulement 25 % de couverture. Les cas « une map vide » et « deux maps non vides » ne sont pas testés (mutants `emptyMap` et `putAll` supprimé). |
-| `parse` | 3 (2 + 1) | Une addition remplacée par une soustraction survit à la l. 260. La branche des l. 277–278 n'est jamais exécutée. |
-| `set(MediaType...)` / `set(String...)` | 4 (4 + 0) | Aucune couverture par les tests originaux. Ces méthodes n'ont aucun survivant : elles feront monter le score, mais ne serviront pas à l'analyse des survivants. |
+| `union` | 7 (5 + 2) | Seulement 25 % des lignes sont couvertes. Aucun test ne passe une map vide, ni deux maps non vides. C'est pour ça que les mutants `emptyMap` et « `putAll` supprimé » restent en vie. |
+| `parse` | 3 (2 + 1) | À la ligne 260, PIT remplace une addition par une soustraction et aucun test ne le voit. La branche des lignes 277–278 n'est jamais exécutée. |
+| `set(MediaType...)` et `set(String...)` | 4 (4 + 0) | Les tests originaux ne les appellent jamais. Elles n'ont aucun survivant, donc elles vont surtout faire monter le score. Elles ne nous apprendront pas grand-chose sur les survivants. |
 
 ### FilenameUtils
 
-| Méthode | Mutants vivants | Justification |
-|---|---|---|
-| `getEmbeddedName` | 8 (3 + 5) | Quatre conditions niées survivent (l. 365–377). Les `return` des branches ne sont pas couverts. |
-| `getEmbeddedPath` | 8 (3 + 5) | Même structure que `getEmbeddedName` (l. 344–359). |
-| `getSanitizedEmbeddedFilePath` | 7 (4 + 3) | Elle appelle `getPrefixLength` (privée, l. 319 : 8 mutants vivants, 30 % des branches). C'est elle qu'on cible à la place de cette méthode privée. Les survivants sont des « changed conditional boundary » (l. 215, 264, 265) et 4 `return ""` sont sans couverture. |
+Au départ, on voulait cibler `getEmbeddedName`, `getEmbeddedPath` et `getPrefixLength`. En regardant le code, on
+s'est rendu compte qu'elles sont toutes les trois privées, et ChatUniTest ne génère pas de tests pour une méthode
+privée. On a donc pris les deux méthodes publiques qui les appellent. Les tests de ces méthodes passent forcément
+par le code privé, donc ils devraient aussi pouvoir tuer ses mutants.
+
+| Méthode | Appelle | Mutants vivants (sans couverture + survivants) | Pourquoi |
+|---|---|---|---|
+| `getSanitizedEmbeddedFileName` | `getEmbeddedName` | 5 (2 + 3), et 8 (3 + 5) dans `getEmbeddedName` | `getEmbeddedName` cherche un nom dans 5 champs des métadonnées, dans un ordre précis. Aucun test ne vérifie cet ordre : quatre conditions niées survivent (lignes 365–377) et plusieurs `return` ne sont jamais atteints. |
+| `getSanitizedEmbeddedFilePath` | `getEmbeddedPath`, `getPrefixLength` | 7 (4 + 3), et 8 (3 + 5) dans `getEmbeddedPath`, 8 (6 + 2) dans `getPrefixLength` | `getEmbeddedPath` fonctionne comme `getEmbeddedName` (lignes 344–359) et a le même problème. `getPrefixLength` n'a que 30 % de ses branches couvertes. Dans la méthode elle-même, trois « changed conditional boundary » survivent (lignes 215, 264 et 265) et quatre `return ""` ne sont pas couverts. |
