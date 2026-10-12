@@ -103,7 +103,7 @@ Exactement les mêmes qu'au run 1 : le test généré pour `getSanitizedEmbedded
 |---|---|---|---|---|
 | `getSuffixFromPath` | 134 | ConditionalsBoundary (`< 6` devient `<= 6`) | survivant | Données trop faibles : aucun test n'a d'extension de exactement 5 caractères après le point (`.abcde`). |
 | `getSanitizedEmbeddedFileName` | 156 | ConditionalsBoundary (`> 0` devient `>= 0`) | survivant | Équivalent : quand `prefixLength == 0`, `substring(0)` ne change rien. |
-| `getSanitizedEmbeddedFileName` | 156 | NegateConditionals | survivant | Probablement équivalent : si on ne retire pas le préfixe (`C:\`, `/`, `\\serveur\`), il est quand même jeté ensuite, parce que `getName` ne garde que ce qui suit le dernier séparateur. |
+| `getSanitizedEmbeddedFileName` | 156 | NegateConditionals | survivant | Pour un chemin normal, le préfixe (`C:\`, `/`, `\\serveur\`) est jeté de toute façon par `getName`, donc pas de différence. **Correction après le run 3 :** ce n'est pas équivalent. Pour `"~"` ou `"~user"`, l'original plante (bug, voir [`tests-manuels.md`](tests-manuels.md)) et pas le mutant. |
 | `getSanitizedEmbeddedFileName` | 174, 185 | EmptyObjectReturnVals | sans couverture | Jamais atteint : aucun test n'a un nom qui devient vide après nettoyage. Pas de test généré pour cette méthode. |
 | `getSanitizedEmbeddedFileName` | 189 | ConditionalsBoundary (`> maxLength` devient `>= maxLength`) | survivant | Données trop faibles : aucun test n'a un nom de exactement `maxLength` caractères. |
 | `getSanitizedEmbeddedFilePath` | 215 | ConditionalsBoundary (`> 0` devient `>= 0`) | survivant | Équivalent (`substring(0)`). |
@@ -115,10 +115,10 @@ Exactement les mêmes qu'au run 1 : le test généré pour `getSanitizedEmbedded
 | `getPrefixLength` | 323, 324 | NegateConditionals, ConditionalsBoundary, PrimitiveReturns | survivant / sans couverture | Branche presque morte : commons-io renvoie déjà 2 pour `"C:"`, donc ce test ne sert que si commons-io renvoie 0 ou -1 pour une chaîne de 2 caractères qui finit par `:`. Le survivant (négation) est probablement équivalent. |
 | `getEmbeddedPath` | 344, 348, 352, 356 | NegateConditionals | survivant | **Données trop faibles.** La méthode essaie 5 propriétés dans un ordre de priorité. Le `getMetadata` de `FilenameUtilsTest` met le même nom dans `RESOURCE_NAME_KEY` et `EMBEDDED_RESOURCE_PATH`, et le mock de l'IA renvoie la même valeur pour toutes les propriétés. Si on inverse une condition, on obtient la même chaîne par une autre propriété. L'ordre de priorité n'est jamais vérifié. |
 | `getEmbeddedPath` | 349, 353, 357 | EmptyObjectReturnVals | sans couverture | Jamais atteint : `EMBEDDED_RESOURCE_PATH` est toujours rempli, donc on ne passe jamais aux propriétés suivantes. |
-| `getEmbeddedPath` | 359 | EmptyObjectReturnVals (`null` devient `""`) | survivant | Équivalent : l'appelant teste `StringUtils.isBlank(path)`, qui traite `null` et `""` de la même façon. |
+| `getEmbeddedPath` | 359 | EmptyObjectReturnVals (`null` devient `""`) | survivant | Données trop faibles : aucun test ne remplit **seulement** `ORIGINAL_RESOURCE_NAME`. **Correction après le run 3 :** on l'avait d'abord classé comme équivalent, mais c'était faux. Le mutant remplace **toujours** la valeur renvoyée par `""`, pas seulement quand elle est `null`, et le test de priorité du run 3 le tue. |
 | `getEmbeddedName` | 365, 369, 373, 377 | NegateConditionals | survivant | Même problème de données que pour `getEmbeddedPath`. |
 | `getEmbeddedName` | 370, 374, 378 | EmptyObjectReturnVals | sans couverture | Jamais atteint (même raison). |
-| `getEmbeddedName` | 380 | EmptyObjectReturnVals | survivant | Équivalent (`isBlank`). |
+| `getEmbeddedName` | 380 | EmptyObjectReturnVals | survivant | Même chose que la ligne 359 (on l'avait classé comme équivalent à tort, il est tué au run 3). |
 | `calculateExtension` | 402 | EmptyObjectReturnVals | sans couverture | Hors cible. |
 | `lookupExtension` | 416 | EmptyObjectReturnVals | sans couverture | Hors cible. |
 
@@ -135,4 +135,4 @@ Mutants qu'on peut tuer dans les méthodes ciblées :
 - `parse` 260 / `isSimpleName` 293 : `assertSame` sur deux `parse` du même type simple, pour vérifier le cache.
 - `equals` 418 : deux `MediaType` différents.
 
-On laisse de côté les mutants équivalents (156, 215, 320, 359, 380) et les méthodes hors cible.
+On laisse de côté les mutants qu'on pensait équivalents (156, 215, 320, 359, 380) et les méthodes hors cible. Le run 3 a montré qu'on se trompait pour 156 (négation), 359 et 380 : voir [`tests-manuels.md`](tests-manuels.md).

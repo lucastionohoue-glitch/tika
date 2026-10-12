@@ -163,6 +163,9 @@
             <param>org.apache.tika.mime.MediaType_parse_7_0_Test</param>
             <param>org.apache.tika.mime.MediaType_set_5_0_Test</param>
             <param>org.apache.tika.io.FilenameUtils_getSanitizedEmbeddedFilePath_4_0_Test</param>
+            <!-- run 3 : nos tests manuels pour les survivants (voir docs/tests-manuels.md) -->
+            <param>org.apache.tika.mime.MediaTypeManualTest</param>
+            <param>org.apache.tika.io.FilenameUtilsManualTest</param>
           </targetTests>
           <!-- matrice complète : tous les tests qui tuent chaque mutant, pas seulement le premier -->
           <fullMutationMatrix>true</fullMutationMatrix>

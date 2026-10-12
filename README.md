@@ -1,250 +1,134 @@
-Welcome to Apache Tika  <https://tika.apache.org/>
-=================================================
 
-[![license](https://img.shields.io/github/license/apache/tika.svg?maxAge=2592000)](http://www.apache.org/licenses/LICENSE-2.0)
-[![Jenkins](https://img.shields.io/jenkins/s/https/ci-builds.apache.org/job/Tika/job/tika-main-jdk17.svg?maxAge=3600)](https://ci-builds.apache.org/job/Tika/job/tika-main-jdk17/)
-[![Jenkins tests](https://img.shields.io/jenkins/t/https/ci-builds.apache.org/job/Tika/job/tika-main-jdk17.svg?maxAge=3600)](https://ci-builds.apache.org/job/Tika/job/tika-main-jdk17/lastBuild/testReport/)
-[![Maven Central](https://img.shields.io/maven-central/v/org.apache.tika/tika.svg?maxAge=86400)](http://search.maven.org/#search|ga|1|g%3A%22org.apache.tika%22)
+## 5. Génération des tests et corrections
 
-Apache Tika(TM) is a toolkit for detecting and extracting metadata and structured text content from various documents using existing parser libraries.
+### Ce que ChatUniTest a produit
 
-Tika is a project of the [Apache Software Foundation](https://www.apache.org).
+Paramètres : `qwen2.5-coder:7b`, 2 tests par méthode, 3 tours au maximum. Comme `stopWhenSuccess` vaut `true`,
+ChatUniTest s'arrête au premier test qu'il juge réussi. On obtient donc au plus un fichier par méthode.
 
-Apache Tika, Tika, Apache, the Apache feather logo, and the Apache Tika project logo are trademarks of The Apache Software Foundation.
+| Méthode | Durée | Résultat selon ChatUniTest | Fichier produit |
+|---|---|---|---|
+| `union` | 6 min | réussi au tour 1, après 1 correction | `MediaType_union_11_0_Test` |
+| `parse` | 9 min | réussi au tour 0 | `MediaType_parse_7_0_Test` |
+| `set` | 39 min | `set(MediaType...)` réussi au tour 1 ; `set(String...)` : ne compile jamais | `MediaType_set_5_0_Test` |
+| `getSanitizedEmbeddedFileName` | 32 min | 2 tests × 3 tours, échouent tous à l'exécution | aucun |
+| `getSanitizedEmbeddedFilePath` | 10 min | réussi au tour 0 | `FilenameUtils_getSanitizedEmbeddedFilePath_4_0_Test` |
 
-Quick Start
-===========
+- **Où sont les tests** : les sorties brutes, non modifiées, sont dans `tika-core/chatunitest-tests/`. Les versions
+  corrigées sont dans `tika-core/src/test/java/org/apache/tika/mime/` et `.../io/`. Les journaux, les prompts et les
+  messages d'erreur de chaque génération sont dans [`docs/chatunitest/<méthode>/`](docs/chatunitest).
+- **Est-ce qu'ils compilent** : oui, les 4 classes compilent (une fois Mockito ajouté, voir l'intervention 4).
+- **Est-ce qu'ils passent** : non. Copiés tels quels, **21 tests sur 39 échouent**
+  ([log](docs/chatunitest/execution-tests-bruts.log)), alors que ChatUniTest les annonçait réussis.
 
-**Parse a file in Java:**
+### Corrections
+
+On a fait 12 corrections, qui touchent 24 des 39 tests. Le détail (fichier | problème | correction) est dans
+[`docs/chatunitest/corrections.md`](docs/chatunitest/corrections.md). En résumé :
+
+- **1 problème de mise en place** : dans `FilenameUtils`, le mock visait `Metadata.get(String)`, alors que le code
+  appelle `Metadata.get(Property)`. La méthode recevait donc toujours `null`.
+- **20 oracles faux** : 12 dans `parse` (le modèle attendait `null` pour des chaînes que Tika accepte) et 8 dans
+  `FilenameUtils` (le modèle attendait des `_` là où la méthode garde un chemin avec des `/`). On les a remplacés par
+  la vraie valeur, après l'avoir vérifiée dans le code. **Ces 20 oracles viennent donc de nous, pas de l'IA.**
+- **1 appel faux** dans `set` : un mauvais usage de la réflexion. L'oracle de l'IA (`NullPointerException`) était
+  juste, on l'a gardé.
+- **1 test sans oracle** (`withPathEndingWithForwardSlash`) : il n'appelle même pas la méthode. On l'a laissé tel
+  quel, pour ne pas mélanger un test de l'IA avec un test écrit par nous.
+
+Après les corrections : `Tests run: 39, Failures: 0`, et toute la suite de `tika-core` passe (788 tests).
+
+Au build, Spotless (configuré par `tika-parent`) ajoute l'en-tête de licence et retire les imports inutilisés. On a
+vérifié par un diff que le corps des tests n'avait pas changé.
+
+### Un vrai bug de Tika trouvé grâce à un test de l'IA
+
+Le test généré `withPathExceedingMaxLength` appelle :
 
 ```java
-import org.apache.tika.Tika;
-
-Tika tika = new Tika();
-String text = tika.parseToString(new File("document.pdf"));
-System.out.println(text);
+FilenameUtils.getSanitizedEmbeddedFilePath(metadata /* "examplefile.txt" */, "txt", 5);
 ```
 
-**From the command line:**
+Au lieu de renvoyer un nom tronqué, **Tika lève `StringIndexOutOfBoundsException`**. Le nom (`examplefile`) dépasse
+`maxLength`, et le code tronque avec :
 
-```bash
-java -jar tika-app-*.jar --text document.pdf
+```java
+return namePart.substring(0, maxLength - extension.length() - 3) + "..." + extension;
 ```
 
-**Maven dependency:**
+Avec `maxLength = 5` et `extension = ".txt"`, ça donne `substring(0, 5 - 4 - 3)`, soit `substring(0, -2)`. La méthode
+ne vérifie jamais que `maxLength` est assez grand pour contenir `"..."` et l'extension. `getSanitizedEmbeddedFileName`
+utilise exactement la même formule (ligne 190). On l'a vérifié dans `jshell` avec un vrai `Metadata`, sans mock
+(`resourceName = "examplefile.txt"`, `maxLength = 5`) : les deux méthodes lèvent
+`java.lang.StringIndexOutOfBoundsException: begin 0, end -2, length 11`. Les tests écrits à la main
+(`FilenameUtilsTest`) utilisent toujours `maxLength = 50` et ne pouvaient pas voir ce cas.
 
-```xml
-<dependency>
-    <groupId>org.apache.tika</groupId>
-    <artifactId>tika-parsers-standard-package</artifactId>
-    <version>4.x.y</version>
-    <type>pom</type>
-</dependency>
+L'oracle de l'IA (`"example..."`) était faux lui aussi, mais la **donnée** qu'elle a choisie était bonne : c'est
+exactement le genre de valeur limite qu'on n'aurait pas forcément pensé à tester. On n'a pas corrigé le bug, puisque
+la consigne interdit de modifier `src/main`. Dans le test, on a mis `maxLength = 10` pour que le test passe, et on
+documente le bug ici.
+ut>
+    <tmpOutput>${project.build.directory}/chatunitest-info</tmpOutput>
+  </configuration>
+</plugin>
 ```
 
-Getting Started
-===============
-Pre-built binaries of Apache Tika standalone applications are available
-from https://tika.apache.org/download.html . Pre-built binaries of all the
-Tika jars can be fetched from Maven Central or your favourite Maven mirror.
+Ollama ignore la clé d'API, mais le plugin en exige une, d'où la valeur `ollama`. Le dossier `tmpOutput` par défaut
+(`/tmp/chatunitest-info`) ne fonctionne pas sous Windows, alors on l'a mis dans `target`. On a coupé le
+multithreading parce que le modèle tourne sur le processeur et ne traite qu'une requête à la fois.
 
-**Tika 2.X and support for Java 8 reached End of Life (EOL) in April, 2025. 
-See [Tika Roadmap 2.x, 3.x and beyond](https://cwiki.apache.org/confluence/display/TIKA/Tika+Roadmap+--+2.x%2C+3.x+and+Beyond).** 
+La génération se lance méthode par méthode, depuis le dossier `tika-core` :
 
-Tika is based on **Java 17** and uses the [Maven 3](https://maven.apache.org) build system.
-**N.B.** [Docker](https://www.docker.com/products/personal) is used for tests in tika-integration-tests. If Docker is not installed, those tests are skipped.
-
-To build Tika from source, use the following command in the main directory:
-
-    ./mvnw clean install
-
-The Maven wrapper (`mvnw`) is included in the repository and will automatically download
-the correct Maven version if needed. On Windows, use `mvnw.cmd` instead.
-
-The build consists of a number of components, including a standalone runnable jar that you can use to try out Tika features. You can run it like this:
-
-    java -jar tika-app/target/tika-app-*.jar --help
-
-
-To build a specific project (for example, tika-server-standard):
-
-    ./mvnw clean install -am -pl :tika-server-standard
-
-If the ossindex-maven-plugin is causing the build to fail because a dependency
-has now been discovered to have a vulnerability:
-
-    ./mvnw clean install -Dossindex.skip
-
-
-Faster Builds
-=============
-
-**Fast profile** - Use `-Pfast` to skip tests, checkstyle, and spotless:
-
-    ./mvnw clean install -Pfast
-
-**Parallel builds** - Add `-T1C` to build with 1 thread per CPU core:
-
-    ./mvnw clean install -Pfast -T1C
-
-**Maven Daemon (mvnd)** - Keeps a warm JVM running for 2-3x faster rebuilds:
-
-```bash
-# Install: https://github.com/apache/maven-mvnd
-# macOS: brew install mvndaemon/tap/mvnd
-
-# Use exactly like mvn
-mvnd clean install -Pfast
-mvnd test -pl :tika-core
+```powershell
+cd tika-core
+..\mvnw.cmd io.github.zju-aces-ise:chatunitest-maven-plugin:2.1.1:method "-DselectMethod=MediaType#union" "-Drat.skip=true" "-Dcheckstyle.skip=true" "-Dforbiddenapis.skip=true"
 ```
 
-**Combine both** for maximum speed during development:
+Les tests générés vont dans `tika-core/chatunitest-tests/`. On ne les copie dans `src/test/java` qu'après les avoir
+analysés (voir la section suivante).
 
-    mvnd clean install -Pfast -T1C
+### Les 4 interventions manuelles
 
+ChatUniTest n'a pas fonctionné tel quel sur notre machine (Windows 11, Intel i7-1355U, sans carte graphique
+dédiée). Voici ce qu'on a dû faire.
 
-Reproducible Builds
-===================
+**1. Passer à ChatUniTest 2.1.1, avec un alias `code-llama` pour le modèle.**
+On avait d'abord pris la version 1.4.1 (`io.github.ZJU-ACES-ISE`), la dernière publiée sous ce groupId. Pour
+`MediaType`, elle échouait avant même d'appeler le modèle, avec seulement le message « Error when generating tests
+for union in MediaType ». En faisant journaliser les exceptions par la JVM (`-Xlog:exceptions=info`), on a trouvé la
+cause : `InvalidPathException: Illegal char <<>`. Le plugin transforme les types dont dépend la méthode en chemins
+de fichiers, et pour `union` l'un d'eux est `java.util.Map<java.lang.String, java.lang.String>`. Windows refuse `<`
+dans un chemin.
+On est donc passés à la version 2.1.1, publiée sous un autre groupId (`io.github.zju-aces-ise`, en minuscules).
+Cette version n'accepte qu'une liste fixe de noms de modèles (`gpt-4o`, `code-llama`, `codeqwen:v1.5-chat`, etc.),
+et `qwen2.5-coder:7b` n'en fait pas partie. On a donc créé dans Ollama un alias qui pointe vers le même modèle :
 
-Apache Tika supports [reproducible builds](https://reproducible-builds.org/). This means
-that building the same source code with the same JDK version should produce
-byte-for-byte identical artifacts, regardless of the build machine or time.
-
-Key configuration:
-- `project.build.outputTimestamp` is set in `tika-parent/pom.xml`
-- All Maven plugins are configured to produce deterministic output
-
-To verify the build plan supports reproducibility:
-
-    ./mvnw artifact:check-buildplan
-
-To verify two builds produce identical artifacts:
-
-    ./mvnw clean install -DskipTests
-    mv ~/.m2/repository/org/apache/tika tika-build-1
-    ./mvnw clean install -DskipTests
-    diff -r tika-build-1 ~/.m2/repository/org/apache/tika
-
-
-Maven Dependencies
-==================
-
-Apache Tika provides *Bill of Material* (BOM) artifact to align Tika module versions and simplify version management. 
-To avoid convergence errors in your own project, import this
-bom or Tika's parent pom.xml in your dependency management section.
-
-If you use Apache Maven:
-
-```xml
-<project>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-       <groupId>org.apache.tika</groupId>
-       <artifactId>tika-bom</artifactId>
-       <version>4.x.y</version>
-       <type>pom</type>
-       <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.apache.tika</groupId>
-      <artifactId>tika-parsers-standard-package</artifactId>
-      <type>pom</type>
-      <!-- version not required since BOM included -->
-    </dependency>
-  </dependencies>
-</project>
+```powershell
+ollama cp qwen2.5-coder:7b code-llama
 ```
 
-For Gradle:
+Le plugin envoie `code-llama`, mais c'est bien `qwen2.5-coder:7b` qui répond : les deux noms ont le même
+identifiant (`dae161e27b0e`).
 
-```kotlin
-dependencies {
-  implementation(platform("org.apache.tika:tika-bom:4.x.y"))
+**2. Supprimer l'analyse laissée par l'ancienne version.**
+Au premier lancement, la 2.1.1 a affiché « Parse output already exists, skip parsing! ». Elle réutilisait l'analyse
+du projet faite par la 1.4.1 dans `target/chatunitest-info`, et on retombait sur la même `InvalidPathException`.
+Après avoir supprimé ce dossier, la 2.1.1 a refait sa propre analyse, et l'erreur a disparu. On n'a pas vérifié
+dans le code ce que la 2.1.1 fait de différent, seulement que ça fonctionne.
 
-  // version not required since bom (platform in Gradle terms)
-  implementation("org.apache.tika:tika-parsers-standard-package@pom")
-}
-```
+**3. Limiter la longueur des réponses (`maxResponseTokens`).**
+Le plugin coupe chaque requête au LLM après 5 minutes, une valeur fixée dans son code. Sur notre processeur, le
+modèle génère environ 4 tokens par seconde. Avec la 1.4.1, sur `getSanitizedEmbeddedFileName`, quatre requêtes ont
+été coupées à 5 minutes. La seule réponse complète (4 min 36) a donné un test qui ne compilait pas, et aucun test
+n'a été produit. Avec `maxResponseTokens` à 900, les réponses prennent environ 3 minutes et passent sous
+la limite. Pour la même raison, on a réduit `testNumber` à 2 (5 par défaut) et `maxRounds` à 3 (5 par défaut),
+sinon la génération des six méthodes aurait pris plusieurs heures. Même comme ça, certaines requêtes de correction
+dépassent encore les 5 minutes : elles contiennent le test et le message d'erreur, donc le prompt est plus long.
 
-Migrating to 4.x
-================
-TBD
-
-Contributing
-============
-See [CONTRIBUTING.md](CONTRIBUTING.md) and https://tika.apache.org/contribute.html
-
-[![contributors](https://contributors-img.web.app/image?repo=apache/tika)](https://github.com/apache/tika/graphs/contributors)
-
-Building from a Specific Tag
-============================
-Let's assume that you want to build the 3.0.1 tag:
-```
-0. Download and install hub.github.com
-1. git clone https://github.com/apache/tika.git
-2. cd tika
-3. git checkout 3.0.1
-4. ./mvnw clean install
-```
-
-If a new vulnerability has been discovered between the date of the
-tag and the date you are building the tag, you may need to build with:
-
-```
-4. ./mvnw clean install -Dossindex.skip
-```
-
-If a local test is not working in your environment, please notify
- the project at dev@tika.apache.org. As an immediate workaround,
- you can turn off individual tests with e.g.:
-
-```
-4. ./mvnw clean install -Dossindex.skip -Dtest=\!UnpackerResourceTest#testPDFImages
-```
-
-License (see also LICENSE.txt)
-==============================
-
-Collective work: Copyright 2011 The Apache Software Foundation.
-
-Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.  See the NOTICE file distributed with this work for additional information regarding copyright ownership.  The ASF licenses this file to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.  You may obtain a copy of the License at
-
-<https://www.apache.org/licenses/LICENSE-2.0>
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the License for the specific language governing permissions and limitations under the License.
-
-Apache Tika includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents is subject to the terms and conditions of the licenses listed in the LICENSE.txt file.
-
-Export Control
-==============
-
-This distribution includes cryptographic software.  The country in which you currently reside may have restrictions on the import, possession, use, and/or re-export to another country, of encryption software.  BEFORE using any encryption software, please  check your country's laws, regulations and policies concerning the import, possession, or use, and re-export of encryption software, to  see if this is permitted.  See <http://www.wassenaar.org/> for more information.
-
-The U.S. Government Department of Commerce, Bureau of Industry and Security (BIS), has classified this software as Export Commodity Control Number (ECCN) 5D002.C.1, which includes information security software using or performing cryptographic functions with asymmetric algorithms.  The form and manner of this Apache Software Foundation distribution makes it eligible for export under the License Exception ENC Technology Software Unrestricted (TSU) exception (see the BIS Export Administration Regulations, Section 740.13) for both object code and source code.
-
-The following provides more details on the included cryptographic software:
-
-Apache Tika uses the Bouncy Castle generic encryption libraries for extracting text content and metadata from encrypted PDF files.  See <http://www.bouncycastle.org/> for more details on Bouncy Castle.  
-
-Mailing Lists
-=============
-
-* user@tika.apache.org - About using Tika
-* dev@tika.apache.org - About developing Tika
-
-Subscribe by sending a message to `{list}-subscribe@tika.apache.org`.
-
-Issue Tracker
-=============
-
-https://issues.apache.org/jira/browse/TIKA
-
-Security
-========
-
-See [SECURITY.md](SECURITY.md) and https://tika.apache.org/security.html
+**4. Ajouter Mockito aux dépendances de test de `tika-core`.**
+Une fois les trois premiers problèmes réglés, le modèle a bien généré des tests pour `union`, mais aucun ne
+compilait : les 2 tests × 3 tours ont tous échoué avec `package org.mockito does not exist`. ChatUniTest ajoute
+toujours les imports de Mockito (`org.mockito.*`, `MockitoExtension`) dans les tests qu'il génère, et `tika-core`
+n'avait pas Mockito. Les tours de correction ne pouvaient donc pas régler le problème. On a ajouté `mockito-core` et
+`mockito-junit-jupiter` en portée `test`, avec la version déjà fixée par `tika-parent` (5.23.0). Les sorties brutes
+de cet essai raté sont dans [`docs/chatunitest/essai1-union-sans-mockito`](docs/chatunitest/essai1-union-sans-mockito).
