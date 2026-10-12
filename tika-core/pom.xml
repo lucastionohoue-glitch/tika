@@ -149,6 +149,23 @@
         </configuration>
       </plugin>
       <plugin>
+        <groupId>io.github.ZJU-ACES-ISE</groupId>
+        <artifactId>chatunitest-maven-plugin</artifactId>
+        <version>1.4.1</version>
+        <configuration>
+          <!-- LLM local via l'API compatible OpenAI d'Ollama (la clé est ignorée) -->
+          <url>http://localhost:11434/v1/chat/completions</url>
+          <model>qwen2.5-coder:7b</model>
+          <apiKeys>ollama</apiKeys>
+          <testNumber>5</testNumber>
+          <maxRounds>5</maxRounds>
+          <temperature>0.5</temperature>
+          <enableMultithreading>false</enableMultithreading>
+          <testOutput>${project.basedir}/chatunitest-tests</testOutput>
+          <tmpOutput>${project.build.directory}/chatunitest-info</tmpOutput>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>${checkstyle.plugin.version}</version>
