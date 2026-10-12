@@ -31,6 +31,10 @@
 
   <artifactId>tika-core</artifactId>
   <packaging>bundle</packaging>
+
+  <properties>
+    <chatunitest.url>http://localhost:11434/v1/chat/completions</chatunitest.url>
+  </properties>
   <name>Apache Tika core</name>
   <url>https://tika.apache.org/</url>
 
@@ -119,6 +123,18 @@
       <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- ChatUniTest ajoute toujours les imports Mockito dans les tests générés -->
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito-junit-jupiter.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -142,23 +158,39 @@
           <targetTests>
             <param>org.apache.tika.mime.MediaTypeTest</param>
             <param>org.apache.tika.io.FilenameUtilsTest</param>
+            <!-- run 2 : tests générés par ChatUniTest (corrigés, voir docs/chatunitest/corrections.md) -->
+            <param>org.apache.tika.mime.MediaType_union_11_0_Test</param>
+            <param>org.apache.tika.mime.MediaType_parse_7_0_Test</param>
+            <param>org.apache.tika.mime.MediaType_set_5_0_Test</param>
+            <param>org.apache.tika.io.FilenameUtils_getSanitizedEmbeddedFilePath_4_0_Test</param>
           </targetTests>
+          <!-- matrice complète : tous les tests qui tuent chaque mutant, pas seulement le premier -->
+          <fullMutationMatrix>true</fullMutationMatrix>
+          <outputFormats>
+            <param>XML</param>
+            <param>HTML</param>
+          </outputFormats>
           <timestampedReports>false</timestampedReports>
           <parseSurefireArgLine>false</parseSurefireArgLine>
           <argLine>-Xmx4g -Djava.awt.headless=true</argLine>
         </configuration>
       </plugin>
       <plugin>
-        <groupId>io.github.ZJU-ACES-ISE</groupId>
+        <groupId>io.github.zju-aces-ise</groupId>
         <artifactId>chatunitest-maven-plugin</artifactId>
-        <version>1.4.1</version>
+        <version>2.1.1</version>
         <configuration>
-          <!-- LLM local via l'API compatible OpenAI d'Ollama (la clé est ignorée) -->
-          <url>http://localhost:11434/v1/chat/completions</url>
-          <model>qwen2.5-coder:7b</model>
+          <!-- LLM local via l'API compatible OpenAI d'Ollama (la clé est ignorée).
+               Sous WSL : -Dchatunitest.url=http://<IP de Windows>:11434/v1/chat/completions -->
+          <url>${chatunitest.url}</url>
+          <!-- ChatUniTest 2.x n'accepte qu'une liste fixe de modèles : code-llama est un alias
+               Ollama de qwen2.5-coder:7b (ollama cp qwen2.5-coder:7b code-llama) -->
+          <model>code-llama</model>
           <apiKeys>ollama</apiKeys>
-          <testNumber>5</testNumber>
-          <maxRounds>5</maxRounds>
+          <!-- le plugin coupe chaque requête après 5 min ; ~4 tokens/s sur CPU -->
+          <maxResponseTokens>900</maxResponseTokens>
+          <testNumber>2</testNumber>
+          <maxRounds>3</maxRounds>
           <temperature>0.5</temperature>
           <enableMultithreading>false</enableMultithreading>
           <testOutput>${project.basedir}/chatunitest-tests</testOutput>
