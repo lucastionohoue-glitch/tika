@@ -1,0 +1,66 @@
+package org.apache.tika.mime;
+
+import org.apache.tika.mime.MediaType;
+import org.junit.jupiter.api.function.Executable;
+import java.util.Set;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.mockito.*;
+import org.junit.jupiter.api.*;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class MediaType_set_6_0_Test {
+
+    @Test
+    public void testSetWithValidTypes() {
+        Set<MediaType> result = MediaType.set("text/plain", "image/png", "application/xml");
+        Assertions.assertEquals(3, result.size());
+        Assertions.assertTrue(result.contains(MediaType.TEXT_PLAIN));
+        Assertions.assertTrue(result.contains(MediaType.IMAGE_PNG));
+        Assertions.assertTrue(result.contains(MediaType.APPLICATION_XML));
+    }
+
+    @Test
+    public void testSetWithNullTypes() {
+        Set<MediaType> result = MediaType.set((String[]) null);
+        Assertions.assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testSetWithEmptyTypes() {
+        Set<MediaType> result = MediaType.set();
+        Assertions.assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testSetWithInvalidType() {
+        Set<MediaType> result = MediaType.set("invalid/type");
+        Assertions.assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testSetWithDuplicateTypes() {
+        Set<MediaType> result = MediaType.set("text/plain", "text/plain");
+        Assertions.assertEquals(1, result.size());
+        Assertions.assertTrue(result.contains(MediaType.TEXT_PLAIN));
+    }
+}
+
+--------------------------------------------
+Error in MediaType_set_6_0_Test: line 31 : cannot find symbol
+  symbol:   variable IMAGE_PNG
+  location: class org.apache.tika.mime.MediaType
+Error in MediaType_set_6_0_Test: line 43 : reference to set is ambiguous
+  both method set(org.apache.tika.mime.MediaType...) in org.apache.tika.mime.MediaType and method set(java.lang.String...) in org.apache.tika.mime.MediaType match

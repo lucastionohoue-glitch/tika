@@ -1,0 +1,142 @@
+package org.apache.tika.mime;
+
+import org.junit.jupiter.api.function.Executable;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.mockito.*;
+import org.junit.jupiter.api.*;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class MediaType_set_6_1_Test {
+
+    private MediaType mediaType;
+
+    @BeforeEach
+    public void setUp() {
+        mediaType = new MediaType(MediaType.OCTET_STREAM);
+    }
+
+    @Test
+    public void testSetWithNull() {
+        Executable executable = () -> MediaType.set((String[]) null);
+        assertThrows(NullPointerException.class, executable);
+    }
+
+    @Test
+    public void testSetWithEmptyArray() {
+        Set<MediaType> result = MediaType.set();
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testSetWithSingleValidType() {
+        Set<MediaType> result = MediaType.set("text/plain");
+        assertEquals(1, result.size());
+        assertTrue(result.contains(MediaType.TEXT_PLAIN));
+    }
+
+    @Test
+    public void testSetWithMultipleValidTypes() {
+        Set<MediaType> result = MediaType.set("text/plain", "application/xml", "application/zip");
+        assertEquals(3, result.size());
+        assertTrue(result.contains(MediaType.TEXT_PLAIN));
+        assertTrue(result.contains(MediaType.APPLICATION_XML));
+        assertTrue(result.contains(MediaType.APPLICATION_ZIP));
+    }
+
+    @Test
+    public void testSetWithInvalidType() {
+        Set<MediaType> result = MediaType.set("text/plain", "application/xml", "application/zip", "invalid-type");
+        assertEquals(3, result.size());
+        assertTrue(result.contains(MediaType.TEXT_PLAIN));
+        assertTrue(result.contains(MediaType.APPLICATION_XML));
+        assertTrue(result.contains(MediaType.APPLICATION_ZIP));
+    }
+
+    @Test
+    public void testSetWithNullElements() {
+        Set<MediaType> result = MediaType.set("text/plain", null, "application/xml");
+        assertEquals(2, result.size());
+        assertTrue(result.contains(MediaType.TEXT_PLAIN));
+        assertTrue(result.contains(MediaType.APPLICATION_XML));
+    }
+
+    @Test
+    public void testSetWithEmptyElements() {
+        Set<MediaType> result = MediaType.set("text/plain", "", "application/xml");
+        assertEquals(2, result.size());
+        assertTrue(result.contains(MediaType.TEXT_PLAIN));
+        assertTrue(result.contains(MediaType.APPLICATION_XML));
+    }
+
+    @Test
+    public void testSetWithWhitespace() {
+        Set<MediaType> result = MediaType.set(" text/plain ", "  application/xml  ", " application/zip ");
+        assertEquals(3, result.size());
+        assertTrue(result.contains(MediaType.TEXT_PLAIN));
+        assertTrue(result.contains(MediaType.APPLICATION_XML));
+        assertTrue(result.contains(MediaType.APPLICATION_ZIP));
+    }
+
+    @Test
+    public void testSetWithDuplicateTypes() {
+        Set<MediaType> result = MediaType.set("text/plain", "text/plain", "application/xml");
+        assertEquals(2, result.size());
+        assertTrue(result.contains(MediaType.TEXT_PLAIN));
+        assertTrue(result.contains(MediaType.APPLICATION_XML));
+    }
+
+    @Test
+    public void testSetWithInvalidParameters() {
+        Set<MediaType> result = MediaType.set("text/plain; charset=utf-8", "application/xml; charset=utf-8", "application/zip; charset=utf-8");
+        assertEquals(3, result.size());
+        assertTrue(result.contains(MediaType.TEXT_PLAIN));
+        assertTrue(result.contains(MediaType.APPLICATION_XML));
+        assertTrue(result.contains(MediaType.APPLICATION_ZIP));
+    }
+
+    @Test
+    public void testSetWithValidParameters() {
+        Set<MediaType> result = MediaType.set("text/plain; charset=utf-8", "application/xml; charset=utf-8", "application/zip; charset=utf-8");
+        assertEquals(3, result.size());
+        assertTrue(result.contains(MediaType.TEXT_PLAIN));
+        assertTrue(result.contains(MediaType.APPLICATION_XML));
+        assertTrue(result.contains(MediaType.APPLICATION_ZIP));
+    }
+
+    @Test
+    public void testSetWithEmptyParameters() {
+        Set<MediaType> result = MediaType.set("text/plain;", "application/xml;", "application/zip;");
+        assertEquals(3, result.size());
+    }
+}
+
+--------------------------------------------
+Error in MediaType_set_6_1_Test: line 29 : no suitable constructor found for MediaType(org.apache.tika.mime.MediaType)
+    constructor org.apache.tika.mime.MediaType.MediaType(java.lang.String,java.lang.String,java.util.Map<java.lang.String,java.lang.String>) is not applicable
+      (actual and formal argument lists differ in length)
+    constructor org.apache.tika.mime.MediaType.MediaType(java.lang.String,java.lang.String) is not applicable
+      (actual and formal argument lists differ in length)
+    constructor org.apache.tika.mime.MediaType.MediaType(java.lang.String,int) is not applicable
+      (actual and formal argument lists differ in length)
+    constructor org.apache.tika.mime.MediaType.MediaType(org.apache.tika.mime.MediaType,java.util.Map<java.lang.String,java.lang.String>) is not applicable
+      (actual and formal argument lists differ in length)
+    constructor org.apache.tika.mime.MediaType.MediaType(org.apache.tika.mime.MediaType,java.lang.String,java.lang.String) is not applicable
+      (actual and formal argument lists differ in length)
+    constructor org.apache.tika.mime.MediaType.MediaType(org.apache.tika.mime.MediaType,java.nio.charset.Charset) is not applicable
+      (actual and formal argument lists differ in length)
+Error in MediaType_set_6_1_Test: line 40 : reference to set is ambiguous
+  both method set(org.apache.tika.mime.MediaType...) in org.apache.tika.mime.MediaType and method set(java.lang.String...) in org.apache.tika.mime.MediaType match

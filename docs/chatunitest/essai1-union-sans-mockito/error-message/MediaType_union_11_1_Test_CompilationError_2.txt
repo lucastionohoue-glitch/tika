@@ -1,0 +1,107 @@
+package org.apache.tika.mime;
+
+import org.apache.tika.mime.MediaType;
+import java.util.HashMap;
+import java.util.Map;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.mockito.*;
+import org.junit.jupiter.api.*;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+@ExtendWith(MockitoExtension.class)
+public class MediaType_union_11_1_Test {
+
+    @Test
+    public void testUnion() throws Exception {
+        Map<String, String> map1 = new HashMap<>();
+        map1.put("charset", "UTF-8");
+        Map<String, String> map2 = new HashMap<>();
+        map2.put("boundary", "12345");
+        Map<String, String> result = (Map<String, String>) invokePrivateMethod(MediaType.class, "union", map1, map2);
+        assertEquals(2, result.size());
+        assertEquals("UTF-8", result.get("charset"));
+        assertEquals("12345", result.get("boundary"));
+    }
+
+    @Test
+    public void testUnionWithEmptyMap() throws Exception {
+        Map<String, String> map1 = new HashMap<>();
+        Map<String, String> map2 = new HashMap<>();
+        Map<String, String> result = (Map<String, String>) invokePrivateMethod(MediaType.class, "union", map1, map2);
+        assertNotNull(result);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testUnionWithOneEmptyMap() throws Exception {
+        Map<String, String> map1 = new HashMap<>();
+        map1.put("charset", "UTF-8");
+        Map<String, String> map2 = new HashMap<>();
+        Map<String, String> result = (Map<String, String>) invokePrivateMethod(MediaType.class, "union", map1, map2);
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("UTF-8", result.get("charset"));
+    }
+
+    @Test
+    public void testUnionWithDuplicateKeys() throws Exception {
+        Map<String, String> map1 = new HashMap<>();
+        map1.put("charset", "UTF-8");
+        Map<String, String> map2 = new HashMap<>();
+        map2.put("charset", "ISO-8859-1");
+        Map<String, String> result = (Map<String, String>) invokePrivateMethod(MediaType.class, "union", map1, map2);
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("ISO-8859-1", result.get("charset"));
+    }
+
+    @Test
+    public void testUnionWithNull() throws Exception {
+        Map<String, String> map1 = null;
+        Map<String, String> map2 = new HashMap<>();
+        map2.put("charset", "UTF-8");
+        Map<String, String> result = (Map<String, String>) invokePrivateMethod(MediaType.class, "union", map1, map2);
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("UTF-8", result.get("charset"));
+    }
+
+    @Test
+    public void testUnionWithEmptyNullMap() throws Exception {
+        Map<String, String> map1 = null;
+        Map<String, String> map2 = null;
+        Map<String, String> result = (Map<String, String>) invokePrivateMethod(MediaType.class, "union", map1, map2);
+        assertNotNull(result);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testUnionWithNullEmptyMap() throws Exception {
+        Map<String, String> map1 = new HashMap<>();
+        Map<String, String> map2 = null;
+        Map<String, String> result = (Map<String, String>) invokePrivateMethod(MediaType.class, "union", map1, map2);
+        assertNotNull(result);
+        assertEquals(0, result.size());
+    }
+}
+
+--------------------------------------------
+Error in MediaType_union_11_1_Test: line 13 : package org.mockito.junit.jupiter does not exist
+Error in MediaType_union_11_1_Test: line 22 : package org.mockito does not exist
+Error in MediaType_union_11_1_Test: line 20 : package org.mockito does not exist
+Error in MediaType_union_11_1_Test: line 25 : cannot find symbol
+  symbol: class MockitoExtension

@@ -1,0 +1,73 @@
+package org.apache.tika.mime;
+
+import org.apache.tika.mime.MediaType;
+import java.util.HashMap;
+import java.util.Map;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.*;
+import org.junit.jupiter.api.*;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class MediaType_union_11_0_Test {
+
+    @Test
+    public void testUnion() {
+        // Create two sample maps
+        Map<String, String> map1 = new HashMap<>();
+        map1.put("charset", "UTF-8");
+        map1.put("boundary", "boundary1");
+        Map<String, String> map2 = new HashMap<>();
+        map2.put("boundary", "boundary2");
+        map2.put("version", "1.0");
+        // Call the union method
+        Map<String, String> result = MediaType.union(map1, map2);
+        // Check the result
+        assertEquals(3, result.size());
+        assertEquals("UTF-8", result.get("charset"));
+        assertEquals("boundary2", result.get("boundary"));
+        assertEquals("1.0", result.get("version"));
+    }
+
+    @Test
+    public void testUnionWithEmptyMaps() {
+        // Create two empty maps
+        Map<String, String> map1 = new HashMap<>();
+        Map<String, String> map2 = new HashMap<>();
+        // Call the union method
+        Map<String, String> result = MediaType.union(map1, map2);
+        // Check the result
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testUnionWithOneEmptyMap() {
+        // Create one empty map and one non-empty map
+        Map<String, String> map1 = new HashMap<>();
+        map1.put("charset", "UTF-8");
+        Map<String, String> map2 = new HashMap<>();
+        // Call the union method
+        Map<String, String> result = MediaType.union(map1, map2);
+        // Check the result
+        assertEquals(1, result.size());
+        assertEquals("UTF-8", result.get("charset"));
+    }
+}
+
+--------------------------------------------
+Error in MediaType_union_11_0_Test: line 19 : package org.mockito.junit.jupiter does not exist
+Error in MediaType_union_11_0_Test: line 22 : package org.mockito does not exist
+Error in MediaType_union_11_0_Test: line 20 : package org.mockito does not exist

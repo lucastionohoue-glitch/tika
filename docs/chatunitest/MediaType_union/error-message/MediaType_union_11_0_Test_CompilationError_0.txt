@@ -1,0 +1,59 @@
+package org.apache.tika.mime;
+
+import java.util.HashMap;
+import java.util.Map;
+import org.mockito.*;
+import org.junit.jupiter.api.*;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class MediaType_union_11_0_Test {
+
+    private Map<String, String> map1;
+
+    private Map<String, String> map2;
+
+    @BeforeEach
+    public void setUp() {
+        map1 = new HashMap<>();
+        map1.put("key1", "value1");
+        map2 = new HashMap<>();
+        map2.put("key2", "value2");
+    }
+
+    @Test
+    public void testUnion() {
+        Map<String, String> result = MediaType.union(map1, map2);
+        assertEquals(2, result.size());
+        assertEquals("value1", result.get("key1"));
+        assertEquals("value2", result.get("key2"));
+        Map<String, String> emptyMap = new HashMap<>();
+        result = MediaType.union(emptyMap, map1);
+        assertEquals(1, result.size());
+        assertEquals("value1", result.get("key1"));
+        result = MediaType.union(map1, emptyMap);
+        assertEquals(1, result.size());
+        assertEquals("value1", result.get("key1"));
+        Map<String, String> bothEmpty = new HashMap<>();
+        result = MediaType.union(bothEmpty, bothEmpty);
+        assertTrue(result.isEmpty());
+    }
+}
+
+--------------------------------------------
+Error in MediaType_union_11_0_Test: line 38 : union(java.util.Map<java.lang.String,java.lang.String>,java.util.Map<java.lang.String,java.lang.String>) has private access in org.apache.tika.mime.MediaType
+Error in MediaType_union_11_0_Test: line 43 : union(java.util.Map<java.lang.String,java.lang.String>,java.util.Map<java.lang.String,java.lang.String>) has private access in org.apache.tika.mime.MediaType
+Error in MediaType_union_11_0_Test: line 46 : union(java.util.Map<java.lang.String,java.lang.String>,java.util.Map<java.lang.String,java.lang.String>) has private access in org.apache.tika.mime.MediaType
+Error in MediaType_union_11_0_Test: line 50 : union(java.util.Map<java.lang.String,java.lang.String>,java.util.Map<java.lang.String,java.lang.String>) has private access in org.apache.tika.mime.MediaType

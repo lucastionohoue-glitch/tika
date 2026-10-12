@@ -1,0 +1,167 @@
+package org.apache.tika.io;
+
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
+import org.apache.tika.mime.MimeTypes;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.tika.extractor.EmbeddedDocumentUtil;
+import org.apache.tika.mime.MimeTypeException;
+import org.apache.tika.utils.StringUtils;
+import org.mockito.*;
+import org.junit.jupiter.api.*;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+@ExtendWith(MockitoExtension.class)
+public class FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test {
+
+    @Mock
+    private Metadata metadata;
+
+    @BeforeEach
+    public void setUp() {
+        when(metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY)).thenReturn("example.txt");
+        when(metadata.get(TikaCoreProperties.INTERNAL_PATH)).thenReturn("");
+        when(metadata.get(TikaCoreProperties.EMBEDDED_RELATIONSHIP_ID)).thenReturn("");
+        when(metadata.get(TikaCoreProperties.EMBEDDED_RESOURCE_PATH)).thenReturn("");
+        when(metadata.get(TikaCoreProperties.ORIGINAL_RESOURCE_NAME)).thenReturn("example.txt");
+    }
+
+    @Test
+    public void testGetSanitizedEmbeddedFileNameWithWhitespacePath() throws IOException {
+        when(metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY)).thenReturn("  example.txt  ");
+        FilenameUtils filenameUtils = new FilenameUtils();
+        String result = filenameUtils.getSanitizedEmbeddedFileName(metadata, "txt", 10);
+        assertEquals("example.txt", result);
+    }
+
+    @Test
+    public void testGetSanitizedEmbeddedFileNameWithColonPath() throws IOException {
+        when(metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY)).thenReturn("example:txt");
+        FilenameUtils filenameUtils = new FilenameUtils();
+        String result = filenameUtils.getSanitizedEmbeddedFileName(metadata, "txt", 10);
+        assertEquals("example.txt", result);
+    }
+
+    @Test
+    public void testGetSanitizedEmbeddedFileNameWithLongPath() throws IOException {
+        when(metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY)).thenReturn("example.txtexample.txt");
+        FilenameUtils filenameUtils = new FilenameUtils();
+        String result = filenameUtils.getSanitizedEmbeddedFileName(metadata, "txt", 10);
+        assertEquals("example.txtexample.txt", result);
+    }
+
+    @Test
+    public void testGetSanitizedEmbeddedFileNameWithNullPath() throws IOException {
+        when(metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY)).thenReturn(null);
+        FilenameUtils filenameUtils = new FilenameUtils();
+        String result = filenameUtils.getSanitizedEmbeddedFileName(metadata, "txt", 10);
+        assertNull(result);
+    }
+
+    @Test
+    public void testGetSanitizedEmbeddedFileNameWithDotPath() throws IOException {
+        when(metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY)).thenReturn(".example.txt");
+        FilenameUtils filenameUtils = new FilenameUtils();
+        String result = filenameUtils.getSanitizedEmbeddedFileName(metadata, "txt", 10);
+        assertEquals("_example.txt", result);
+    }
+
+    @Test
+    public void testGetSanitizedEmbeddedFileName() throws IOException {
+        FilenameUtils filenameUtils = new FilenameUtils();
+        String result = filenameUtils.getSanitizedEmbeddedFileName(metadata, "txt", 10);
+        assertEquals("example.txt", result);
+    }
+
+    @Test
+    public void testGetSanitizedEmbeddedFileNameWithProtocolPath() throws IOException {
+        when(metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY)).thenReturn("http://example.com/example.txt");
+        FilenameUtils filenameUtils = new FilenameUtils();
+        String result = filenameUtils.getSanitizedEmbeddedFileName(metadata, "txt", 10);
+        assertEquals("example.txt", result);
+    }
+
+    @Test
+    public void testGetSanitizedEmbeddedFileNameWithPrefixPath() throws IOException {
+        when(metadata.get(TikaCoreProperties.RESOURCE_NAME_KEY)).thenReturn("C:\\example.txt");
+        FilenameUtils filenameUtils = new FilenameUtils();
+        String result = filenameUtils.getSanitizedEmbeddedFileName(metadata, "txt", 10);
+        assertEquals("example.txt", result);
+    }
+}
+
+--------------------------------------------
+Error in testGetSanitizedEmbeddedFileNameWithLongPath(): line 58 : org.opentest4j.AssertionFailedError: expected: <example.txtexample.txt> but was: <exa....txt>
+Error in testGetSanitizedEmbeddedFileNameWithNullPath(): line 66 : org.opentest4j.AssertionFailedError: expected: <null> but was: <example.txt>
+Error in testGetSanitizedEmbeddedFileNameWithColonPath(): line 49 : org.mockito.exceptions.misusing.PotentialStubbingProblem: 
+Strict stubbing argument mismatch. Please check:
+ - this invocation of 'get' method:
+    metadata.get(
+    org.apache.tika.metadata.Property@3891284e
+);
+    -> at org.apache.tika.io.FilenameUtils.calculateExtension(FilenameUtils.java:392)
+ - has following stubbing(s) with different arguments:
+    1. metadata.get(
+    org.apache.tika.metadata.Property@5b2c0d72
+); stubbed with: [Returns: ]
+      -> at org.apache.tika.io.FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.setUp(FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.java:31)
+    2. metadata.get(
+    org.apache.tika.metadata.Property@6ff58330
+); stubbed with: [Returns: ]
+      -> at org.apache.tika.io.FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.setUp(FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.java:32)
+    3. metadata.get(
+    org.apache.tika.metadata.Property@990cc0e4
+); stubbed with: [Returns: ]
+      -> at org.apache.tika.io.FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.setUp(FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.java:33)
+    4. metadata.get(
+    org.apache.tika.metadata.Property@dd2c4841
+); stubbed with: [Returns: example.txt]
+      -> at org.apache.tika.io.FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.setUp(FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.java:34)
+Typically, stubbing argument mismatch indicates user mistake when writing tests.
+Mockito fails early so that you can debug potential problem easily.
+However, there are legit scenarios when this exception generates false negative signal:
+  - stubbing the same method multiple times using 'given().will()' or 'when().then()' API
+    Please use 'will().given()' or 'doReturn().when()' API for stubbing.
+  - stubbed method is intentionally invoked with different arguments by code under test
+    Please use default or 'silent' JUnit Rule (equivalent of Strictness.LENIENT).
+For more information see javadoc for PotentialStubbingProblem class.
+Error in testGetSanitizedEmbeddedFileNameWithWhitespacePath(): line 41 : org.mockito.exceptions.misusing.PotentialStubbingProblem: 
+Strict stubbing argument mismatch. Please check:
+ - this invocation of 'get' method:
+    metadata.get(
+    org.apache.tika.metadata.Property@3891284e
+);
+    -> at org.apache.tika.io.FilenameUtils.calculateExtension(FilenameUtils.java:392)
+ - has following stubbing(s) with different arguments:
+    1. metadata.get(
+    org.apache.tika.metadata.Property@5b2c0d72
+); stubbed with: [Returns: ]
+      -> at org.apache.tika.io.FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.setUp(FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.java:31)
+    2. metadata.get(
+    org.apache.tika.metadata.Property@6ff58330
+); stubbed with: [Returns: ]
+      -> at org.apache.tika.io.FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.setUp(FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.java:32)
+    3. metadata.get(
+    org.apache.tika.metadata.Property@990cc0e4
+); stubbed with: [Returns: ]
+      -> at org.apache.tika.io.FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.setUp(FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.java:33)
+    4. metadata.get(
+    org.apache.tika.metadata.Property@dd2c4841
+); stubbed with: [Returns: example.txt]
+      -> at org.apache.tika.io.FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.setUp(FilenameUtils_getSanitizedEmbeddedFileName_3_0_Test.java:34)
+Typically, stubbing argument mismatch indicates user mistake when writing tests.
+Mockito fails early so that you can debug potential problem easily.
+However, there are legit scenarios when this exception generates false negative signal:
+  - stubbing the same method multiple times using 'given().will()' or 'when().then()' API
+    Please use 'will().given()' or 'doReturn().when()' API for stubbing.
+  - stubbed method is intentionally invoked with different arguments by code under test
+    Please use default or 'silent' JUnit Rule (equivalent of Strictness.LENIENT).
+For more information see javadoc for PotentialStubbingProblem class.

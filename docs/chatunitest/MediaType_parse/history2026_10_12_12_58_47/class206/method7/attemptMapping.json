@@ -1,0 +1,20 @@
+{
+  "attempt0": {
+    "testClassName": "MediaType_parse_7_0_Test",
+    "fullName": "org.apache.tika.mime.MediaType_parse_7_0_Test",
+    "path": "C:\\Users\\lucas\\Desktop\\devoir1IFT3913\\tika\\tika-core\\chatunitest-tests\\tika-parent\\tika-core\\org\\apache\\tika\\mime\\MediaType_parse_7_0_Test.java",
+    "className": "MediaType",
+    "packageName": "org.apache.tika.mime",
+    "methodName": "parse",
+    "methodSig": "parse(String)"
+  },
+  "attempt1": {
+    "testClassName": "MediaType_parse_7_1_Test",
+    "fullName": "org.apache.tika.mime.MediaType_parse_7_1_Test",
+    "path": "C:\\Users\\lucas\\Desktop\\devoir1IFT3913\\tika\\tika-core\\chatunitest-tests\\tika-parent\\tika-core\\org\\apache\\tika\\mime\\MediaType_parse_7_0_Test.java",
+    "className": "MediaType",
+    "packageName": "org.apache.tika.mime",
+    "methodName": "parse",
+    "methodSig": "parse(String)"
+  }
+}
