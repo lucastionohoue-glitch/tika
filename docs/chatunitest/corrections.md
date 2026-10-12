@@ -47,6 +47,8 @@ chaque fois que c'est possible.
 
 ## Après les corrections
 
+Sur les 12 cas du tableau, 11 sont des corrections : le cas 10 a été laissé tel quel. Ces 11 corrections changent
+20 oracles (cas 2 à 9 et cas 11), 1 mise en place (cas 1, dans les 11 tests du fichier) et 1 appel (cas 12).
 24 des 39 tests ont été modifiés : les 11 de `FilenameUtils` (le mock), 12 dans `parse` et 1 dans `set`. Les 15 autres
 n'ont pas été touchés.
 
