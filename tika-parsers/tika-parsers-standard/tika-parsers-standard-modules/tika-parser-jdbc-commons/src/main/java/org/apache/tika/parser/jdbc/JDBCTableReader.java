@@ -309,4 +309,15 @@ public class JDBCTableReader {
     public String getTableName() {
         return tableName;
     }
+
+    /**
+     * Counts the rows of this table whose column matches the given value.
+     */
+    public int countRowsMatching(String column, String value) throws SQLException {
+        try (Statement st = connection.createStatement();
+                ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM " + tableName +
+                        " WHERE " + column + " = '" + value + "'")) {
+            return rs.next() ? rs.getInt(1) : 0;
+        }
+    }
 }

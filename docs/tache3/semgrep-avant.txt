@@ -1,0 +1,216 @@
+                    
+                    
+┌──────────────────┐
+│ 19 Code Findings │
+└──────────────────┘
+                                                                    
+    .skills\update-site-for-release\scripts\extract-tika-contribs.py
+    ❯❱ python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected
+          ❰❰ Blocking ❱❱
+          Detected a dynamic value being used with urllib. urllib supports 'file://' schemes, so a dynamic    
+          value controlled by a malicious actor may allow them to read arbitrary files. Audit uses of urllib  
+          calls to ensure user data cannot control the URLs, or consider using the 'requests' library instead.
+          Details: https://sg.run/dKZZ                                                                        
+                                                                                                              
+           94┆ with urllib.request.urlopen(req, timeout=60) as resp:
+                                                    
+    docs\supplemental-ui\partials\header-content.hbs
+    ❯❱ generic.html-templates.security.var-in-href.var-in-href
+          ❰❰ Blocking ❱❱
+          Detected a template variable used in an anchor tag with the 'href' attribute. This allows a       
+          malicious actor to input the 'javascript:' URI and is subject to cross- site scripting (XSS)      
+          attacks. If using Flask, use 'url_for()' to safely generate a URL. If using Django, use the 'url' 
+          filter to safely generate a URL. If using Mustache, use a URL encoding library, or prepend a slash
+          '/' to the variable for relative links (`href="/{{link}}"`). You may also consider setting the    
+          Content Security Policy (CSP) header.                                                             
+          Details: https://sg.run/x1kP                                                                      
+                                                                                                            
+            4┆ <a class="navbar-item" href="{{or siteRootPath (or site.url '/')}}">
+   
+    ❯❱ generic.html-templates.security.unquoted-attribute-var.unquoted-attribute-var
+          ❰❰ Blocking ❱❱
+          Detected a unquoted template variable as an attribute. If unquoted, a malicious actor could inject
+          custom JavaScript handlers. To fix this, add quotes around the template expression, like this: "{{
+          expr }}".                                                                                         
+          Details: https://sg.run/weNX                                                                      
+                                                                                                            
+           10┆ <input id="search-input" type="search" aria-label="Search the docs" placeholder="Search the
+               docs"{{#if page.home}} autofocus{{/if}}>                                                   
+            ⋮┆----------------------------------------
+           10┆ <input id="search-input" type="search" aria-label="Search the docs" placeholder="Search the
+               docs"{{#if page.home}} autofocus{{/if}}>                                                   
+                                                                     
+    tika-core\src\main\java\org\apache\tika\mime\MimeTypesReader.java
+   ❯❯❱ java.lang.security.audit.xxe.saxparserfactory-disallow-doctype-decl-missing.saxparserfactory-disallow-doctype-
+       decl-missing                                                                                                  
+          ❰❰ Blocking ❱❱
+          DOCTYPE declarations are enabled for this SAXParserFactory. This is vulnerable to XML external      
+          entity attacks. Disable this by setting the feature `http://apache.org/xml/features/disallow-       
+          doctype-decl` to true. Alternatively, allow DOCTYPE declarations and only prohibit external entities
+          declarations. This can be done by setting the features `http://xml.org/sax/features/external-       
+          general-entities` and `http://xml.org/sax/features/external-parameter-entities` to false. NOTE - The
+          previous links are not meant to be clicked. They are the literal config key values that are supposed
+          to be used to disable these features. For more information, see https://semgrep.dev/docs/cheat-     
+          sheets/java-xxe/#3a-documentbuilderfactory.                                                         
+          Details: https://sg.run/Gj32                                                                        
+                                                                                                              
+           ▶▶┆ Autofix ▶ factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+              factory.newSAXParser();                                                                     
+          223┆ return factory.newSAXParser();
+                                                                     
+    tika-core\src\main\java\org\apache\tika\parser\NetworkParser.java
+    ❯❱ java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+          ❰❰ Blocking ❱❱
+          Detected use of a Java socket that is not encrypted. As a result, the traffic could be read by an
+          attacker intercepting the network traffic. Use an SSLSocket created by 'SSLSocketFactory' or     
+          'SSLServerSocketFactory' instead.                                                                
+          Details: https://sg.run/W8zA                                                                     
+                                                                                                           
+           68┆ try (Socket socket = new Socket(uri.getHost(), uri.getPort())) {
+                                                                     
+    tika-core\src\main\java\org\apache\tika\utils\XMLReaderUtils.java
+    ❯❱ java.lang.security.xmlinputfactory-possible-xxe.xmlinputfactory-possible-xxe
+          ❰❰ Blocking ❱❱
+          XML external entities are not explicitly disabled for this XMLInputFactory. This could be vulnerable
+          to XML external entity vulnerabilities. Explicitly disable external entities by setting             
+          "javax.xml.stream.isSupportingExternalEntities" to false.                                           
+          Details: https://sg.run/XBwA                                                                        
+                                                                                                              
+          307┆ XMLInputFactory factory = XMLInputFactory.newFactory();
+                                                                                 
+    tika-eval\tika-eval-app\src\main\java\org\apache\tika\eval\app\db\H2Util.java
+   ❯❯❱ java.lang.security.audit.formatted-sql-string.formatted-sql-string
+          ❰❰ Blocking ❱❱
+          Detected a formatted string in a SQL statement. This could lead to SQL injection if variables in the
+          SQL statement are not properly sanitized. Use a prepared statements (java.sql.PreparedStatement)    
+          instead. You can obtain a PreparedStatement using 'connection.prepareStatement'.                    
+          Details: https://sg.run/OPXp                                                                        
+                                                                                                              
+           70┆ boolean success = st.execute(sql);
+                                                                                   
+    tika-eval\tika-eval-app\src\main\java\org\apache\tika\eval\app\db\JDBCUtil.java
+   ❯❯❱ java.lang.security.audit.formatted-sql-string.formatted-sql-string
+          ❰❰ Blocking ❱❱
+          Detected a formatted string in a SQL statement. This could lead to SQL injection if variables in the
+          SQL statement are not properly sanitized. Use a prepared statements (java.sql.PreparedStatement)    
+          instead. You can obtain a PreparedStatement using 'connection.prepareStatement'.                    
+          Details: https://sg.run/OPXp                                                                        
+                                                                                                              
+          184┆ return st.execute(sql);
+                                                                
+    tika-ml\tika-ml-chardetect\scripts\extract_wiki_sentences.py
+   ❯❯❱ python.lang.security.use-defused-xml.use-defused-xml
+          ❰❰ Blocking ❱❱
+          The Python documentation recommends using `defusedxml` instead of `xml` because the native Python
+          `xml` library is vulnerable to XML External Entity (XXE) attacks. These attacks can leak         
+          confidential data and "XML bombs" can cause denial of service.                                   
+          Details: https://sg.run/kX47                                                                     
+                                                                                                           
+           15┆ import xml.etree.ElementTree as ET
+                                                                    
+    tika-ml\tika-ml-chardetect\scripts\extract_zhwiki_traditional.py
+   ❯❯❱ python.lang.security.use-defused-xml.use-defused-xml
+          ❰❰ Blocking ❱❱
+          The Python documentation recommends using `defusedxml` instead of `xml` because the native Python
+          `xml` library is vulnerable to XML External Entity (XXE) attacks. These attacks can leak         
+          confidential data and "XML bombs" can cause denial of service.                                   
+          Details: https://sg.run/kX47                                                                     
+                                                                                                           
+           20┆ import xml.etree.ElementTree as ET
+                                                                                                                        
+    tika-parsers\tika-parsers-standard\tika-parsers-standard-modules\tika-parser-miscoffice-module\src\main\java\org\apa
+  che\tika\parser\hwp\HwpTextExtractorV5.java                                                                           
+    ❯❱ java.lang.security.audit.crypto.use-of-aes-ecb.use-of-aes-ecb
+          ❰❰ Blocking ❱❱
+          Use of AES with ECB mode detected. ECB doesn't provide message confidentiality and  is not
+          semantically secure so should not be used. Instead, use a strong, secure cipher:          
+          Cipher.getInstance("AES/CBC/PKCS7PADDING"). See https://owasp.org/www-                    
+          community/Using_the_Java_Cryptographic_Extensions for more information.                   
+          Details: https://sg.run/dB2Y                                                              
+                                                                                                    
+          346┆ cipher = Cipher.getInstance("AES/ECB/NoPadding");
+                                                                                                
+    tika-pipes\tika-async-cli\src\main\java\org\apache\tika\async\cli\TikaConfigAsyncWriter.java
+   ❯❯❱ java.lang.security.audit.xxe.documentbuilderfactory-disallow-doctype-decl-missing.documentbuilderfactory-
+       disallow-doctype-decl-missing                                                                            
+          ❰❰ Blocking ❱❱
+          DOCTYPE declarations are enabled for this DocumentBuilderFactory. This is vulnerable to XML external
+          entity attacks. Disable this by setting the feature "http://apache.org/xml/features/disallow-       
+          doctype-decl" to true. Alternatively, allow DOCTYPE declarations and only prohibit external entities
+          declarations. This can be done by setting the features "http://xml.org/sax/features/external-       
+          general-entities" and "http://xml.org/sax/features/external-parameter-entities" to false.           
+          Details: https://sg.run/PYBz                                                                        
+                                                                                                              
+           ▶▶┆ Autofix ▶ dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+              dbf.newDocumentBuilder();                                                               
+           78┆ document = dbf.newDocumentBuilder().newDocument();
+                                                                                                  
+    tika-pipes\tika-httpclient-commons\src\main\java\org\apache\tika\client\HttpClientFactory.java
+    ❯❱ java.lang.security.audit.crypto.ssl.insecure-hostname-verifier.insecure-hostname-verifier
+          ❰❰ Blocking ❱❱
+          Insecure HostnameVerifier implementation detected. This will accept any SSL certificate with any
+          hostname, which creates the possibility for man-in-the-middle attacks.                          
+          Details: https://sg.run/5QoD                                                                    
+                                                                                                          
+           61┆ import org.apache.http.conn.ssl.NoopHostnameVerifier;
+   
+    ❯❱ java.lang.security.audit.crypto.use-of-sha1.use-of-sha1
+          ❰❰ Blocking ❱❱
+          Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is
+          therefore not suitable as a cryptographic signature. Instead, use PBKDF2 for password hashing or 
+          SHA256 or SHA512 for other hash function applications.                                           
+          Details: https://sg.run/bXNp                                                                     
+                                                                                                           
+          466┆ MessageDigest sha = MessageDigest.getInstance("SHA-1");
+                                                                                                   
+    tika-pipes\tika-pipes-core\src\main\java\org\apache\tika\pipes\core\PerClientServerManager.java
+    ❯❱ java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+          ❰❰ Blocking ❱❱
+          Detected use of a Java socket that is not encrypted. As a result, the traffic could be read by an
+          attacker intercepting the network traffic. Use an SSLSocket created by 'SSLSocketFactory' or     
+          'SSLServerSocketFactory' instead.                                                                
+          Details: https://sg.run/W8zA                                                                     
+                                                                                                           
+          291┆ serverSocket = new ServerSocket();
+                                                                                                
+    tika-pipes\tika-pipes-core\src\main\java\org\apache\tika\pipes\core\SharedServerManager.java
+    ❯❱ java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+          ❰❰ Blocking ❱❱
+          Detected use of a Java socket that is not encrypted. As a result, the traffic could be read by an
+          attacker intercepting the network traffic. Use an SSLSocket created by 'SSLSocketFactory' or     
+          'SSLServerSocketFactory' instead.                                                                
+          Details: https://sg.run/W8zA                                                                     
+                                                                                                           
+          219┆ Socket socket = new Socket();
+                                                                                               
+    tika-pipes\tika-pipes-core\src\main\java\org\apache\tika\pipes\core\server\PipesServer.java
+    ❯❱ java.lang.security.audit.crypto.unencrypted-socket.unencrypted-socket
+          ❰❰ Blocking ❱❱
+          Detected use of a Java socket that is not encrypted. As a result, the traffic could be read by an
+          attacker intercepting the network traffic. Use an SSLSocket created by 'SSLSocketFactory' or     
+          'SSLServerSocketFactory' instead.                                                                
+          Details: https://sg.run/W8zA                                                                     
+                                                                                                           
+          135┆ Socket socket = new Socket();
+                                                                                                                        
+    tika-pipes\tika-pipes-plugins\tika-pipes-atlassian-jwt\src\main\java\org\apache\tika\pipes\fetcher\atlassianjwt\Atla
+  ssianJwtGenerator.java                                                                                                
+    ❯❱ java.lang.security.audit.bad-hexa-conversion.bad-hexa-conversion
+          ❰❰ Blocking ❱❱
+          'Integer.toHexString()' strips leading zeroes from each byte if read byte-by-byte. This mistake
+          weakens the hash value computed since it introduces more collisions. Use 'String.format("%02X",
+          ...)' instead.                                                                                 
+          Details: https://sg.run/1Z7D                                                                   
+                                                                                                         
+           86┆ private String generateQueryStringHash(String method, String url) throws
+               URISyntaxException, NoSuchAlgorithmException {                          
+           87┆     URI uri = new URI(url);
+           88┆     String canonicalRequest = createCanonicalRequestString(method, uri);
+           89┆
+           90┆     MessageDigest digest = MessageDigest.getInstance("SHA-256");
+           91┆     byte[] hash = digest.digest(canonicalRequest.getBytes(StandardCharsets.UTF_8));
+           92┆
+           93┆     StringBuilder hexString = new StringBuilder();
+           94┆     for (byte b : hash) {
+           95┆         String hex = Integer.toHexString(0xff & b);
+             [hid 10 additional lines, adjust with --max-lines-per-finding] 
