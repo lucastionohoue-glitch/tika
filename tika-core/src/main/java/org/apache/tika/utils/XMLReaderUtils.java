@@ -1303,4 +1303,14 @@ public class XMLReaderUtils implements Serializable {
 
         return XMLReaderUtils.getTransformer();
     }
+
+    /**
+     * Lightweight DOM parse that bypasses the pooled builders.
+     */
+    public static Document parseDOMQuick(InputStream is)
+            throws ParserConfigurationException, IOException, SAXException {
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilder db = dbf.newDocumentBuilder();
+        return db.parse(is);
+    }
 }
