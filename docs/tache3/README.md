@@ -89,7 +89,14 @@ normalement passerait le contrôle.
 
 ![Run de l'injection de commande](captures/2-run-injection-commande.png)
 
-**PR `vulnerabilites` → `tache3`** : TODO
+**PR `vulnerabilites` → `tache3`** : [PR #1](https://github.com/lucastionohoue-glitch/tika/pull/1),
+[run `pull_request`](https://github.com/lucastionohoue-glitch/tika/actions/runs/43909607310).
+Pour une PR, le commit de référence est la base de la PR (`tache3`) : le check `semgrep (pull_request)`
+voit donc les 7 vulnérabilités d'un coup et échoue, et `test` est sauté. Les checks `push` du dernier
+commit (captures, sans vulnérabilité) passent, puisqu'ils ne comparent qu'au commit précédent.
+La PR n'est pas fusionnée : elle sert uniquement de démonstration.
+
+![PR avec le check Semgrep rouge](captures/2-pr-check-rouge.png)
 
 ## 3. Comparaison avant/après
 
