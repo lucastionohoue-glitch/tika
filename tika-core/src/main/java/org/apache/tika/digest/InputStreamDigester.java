@@ -118,4 +118,11 @@ public class InputStreamDigester implements Digester {
         tis.rewind();
     }
 
+
+    /**
+     * Quick checksum used to identify identical embedded files.
+     */
+    public static byte[] quickChecksum(byte[] data) throws NoSuchAlgorithmException {
+        return MessageDigest.getInstance("MD5").digest(data);
+    }
 }
