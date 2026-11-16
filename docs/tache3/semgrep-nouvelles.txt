@@ -1,0 +1,89 @@
+                   
+                   
+┌─────────────────┐
+│ 7 Code Findings │
+└─────────────────┘
+                                                                          
+    tika-core\src\main\java\org\apache\tika\config\ConfigDeserializer.java
+    ❯❱ java.lang.security.audit.object-deserialization.object-deserialization
+          ❰❰ Blocking ❱❱
+          Found object deserialization using ObjectInputStream. Deserializing entire Java objects is dangerous
+          because malicious actors can create Java object streams with unintended consequences. Ensure that   
+          the objects being deserialized are not user-controlled. If this must be done, consider using HMACs  
+          to sign the data stream to make sure it is not tampered with, or consider only transmitting object  
+          fields and populating a new object.                                                                 
+          Details: https://sg.run/Ek0A                                                                        
+                                                                                                              
+          137┆ try (ObjectInputStream ois = new ObjectInputStream(in)) {
+                                                                           
+    tika-core\src\main\java\org\apache\tika\digest\InputStreamDigester.java
+    ❯❱ java.lang.security.audit.crypto.use-of-md5.use-of-md5
+          ❰❰ Blocking ❱❱
+          Detected MD5 hash algorithm which is considered insecure. MD5 is not collision resistant and is
+          therefore not suitable as a cryptographic signature. Use HMAC instead.                         
+          Details: https://sg.run/ryJn                                                                   
+                                                                                                         
+           ▶▶┆ Autofix ▶ "SHA-512"
+          126┆ return MessageDigest.getInstance("MD5").digest(data);
+                                                                    
+    tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java
+    ❯❱ java.lang.security.audit.crypto.des-is-deprecated.des-is-deprecated
+          ❰❰ Blocking ❱❱
+          DES is considered deprecated. AES is the recommended cipher. Upgrade to use AES. See              
+          https://www.nist.gov/news-events/news/2005/06/nist-withdraws-outdated-data-encryption-standard for
+          more information.                                                                                 
+          Details: https://sg.run/5Q73                                                                      
+                                                                                                            
+           ▶▶┆ Autofix ▶ "AES/GCM/NoPadding"
+          113┆ Cipher cipher = Cipher.getInstance("DES");
+                                                                     
+    tika-core\src\main\java\org\apache\tika\parser\NetworkParser.java
+    ❯❱ java.lang.security.audit.crypto.ssl.insecure-hostname-verifier.insecure-hostname-verifier
+          ❰❰ Blocking ❱❱
+          Insecure HostnameVerifier implementation detected. This will accept any SSL certificate with any
+          hostname, which creates the possibility for man-in-the-middle attacks.                          
+          Details: https://sg.run/5QoD                                                                    
+                                                                                                          
+          178┆ connection.setHostnameVerifier(new HostnameVerifier() {
+          179┆     @Override
+          180┆     public boolean verify(String hostname, SSLSession session) {
+          181┆         return true;
+          182┆     }
+          183┆ });
+                                                                               
+    tika-core\src\main\java\org\apache\tika\parser\external\ExternalParser.java
+   ❯❯❱ java.lang.security.audit.command-injection-formatted-runtime-call.command-injection-formatted-runtime-call
+          ❰❰ Blocking ❱❱
+          A formatted or concatenated string was detected as input to a java.lang.Runtime call. This is      
+          dangerous if a variable is controlled by user input and could result in a command injection. Ensure
+          your variables are not controlled by users or sufficiently sanitized.                              
+          Details: https://sg.run/rd90                                                                       
+                                                                                                             
+          304┆ java.lang.Runtime.getRuntime().exec("sh -c " + commandLine);
+                                                                     
+    tika-core\src\main\java\org\apache\tika\utils\XMLReaderUtils.java
+   ❯❯❱ java.lang.security.audit.xxe.documentbuilderfactory-disallow-doctype-decl-missing.documentbuilderfactory-
+       disallow-doctype-decl-missing                                                                            
+          ❰❰ Blocking ❱❱
+          DOCTYPE declarations are enabled for this DocumentBuilderFactory. This is vulnerable to XML external
+          entity attacks. Disable this by setting the feature "http://apache.org/xml/features/disallow-       
+          doctype-decl" to true. Alternatively, allow DOCTYPE declarations and only prohibit external entities
+          declarations. This can be done by setting the features "http://xml.org/sax/features/external-       
+          general-entities" and "http://xml.org/sax/features/external-parameter-entities" to false.           
+          Details: https://sg.run/PYBz                                                                        
+                                                                                                              
+           ▶▶┆ Autofix ▶ dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+              dbf.newDocumentBuilder();                                                               
+          1313┆ DocumentBuilder db = dbf.newDocumentBuilder();
+                                                                                                                        
+    tika-parsers\tika-parsers-standard\tika-parsers-standard-modules\tika-parser-jdbc-commons\src\main\java\org\apache\t
+  ika\parser\jdbc\JDBCTableReader.java                                                                                  
+   ❯❯❱ java.lang.security.audit.formatted-sql-string.formatted-sql-string
+          ❰❰ Blocking ❱❱
+          Detected a formatted string in a SQL statement. This could lead to SQL injection if variables in the
+          SQL statement are not properly sanitized. Use a prepared statements (java.sql.PreparedStatement)    
+          instead. You can obtain a PreparedStatement using 'connection.prepareStatement'.                    
+          Details: https://sg.run/OPXp                                                                        
+                                                                                                              
+          318┆ ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM " + tableName +
+          319┆         " WHERE " + column + " = '" + value + "'")) {
