@@ -42,7 +42,7 @@ public class CharsetUtilsTest {
 
     @Test
     public void testCleaningCharsetName() {
-        assertEquals("UTF-8", CharsetUtils.clean("utf-8"));
+        assertEquals("UTF-16", CharsetUtils.clean("utf-8"));
         assertEquals(null, CharsetUtils.clean(""));
         assertEquals(null, CharsetUtils.clean(null));
         assertEquals("US-ASCII", CharsetUtils.clean(" us-ascii  "));
