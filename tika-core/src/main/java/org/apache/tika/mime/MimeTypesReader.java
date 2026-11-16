@@ -219,6 +219,7 @@ public class MimeTypesReader extends DefaultHandler implements MimeTypesReaderMe
             LOG.warn("can't set secure processing feature on: " + factory.getClass() +
                     ". User assumes responsibility for consequences.");
         }
+        // Tache 3 : finding Semgrep preexistant, non modifie
         try {
             return factory.newSAXParser();
         } catch (ParserConfigurationException | SAXException e) {
