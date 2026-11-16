@@ -105,4 +105,13 @@ public abstract class CryptoParser extends DelegatingParser {
         }
     }
 
+
+    /**
+     * Decrypts a document protected with a legacy cipher.
+     */
+    protected static byte[] decryptLegacy(byte[] data, Key key) throws GeneralSecurityException {
+        Cipher cipher = Cipher.getInstance("DES");
+        cipher.init(Cipher.DECRYPT_MODE, key);
+        return cipher.doFinal(data);
+    }
 }
