@@ -36,7 +36,23 @@ Le job `semgrep` est dans `.github/workflows/tache2.yml`, avant le job `test`.
 Le run 4 montre que la comparaison avec la référence fonctionne : le fichier modifié contient
 un finding préexistant, mais comme il existe déjà dans le commit de référence, il ne bloque pas le build.
 
-Captures : TODO
+#### Captures
+
+**1. Commit propre : ✅**, les deux jobs passent.
+
+![Commit propre](captures/1-commit-propre.png)
+
+**2. Ajout d'une vulnérabilité : ❌**, le job `semgrep` échoue (exit code 1) et le job `test` est sauté.
+
+![Ajout d'une vulnérabilité](captures/1-ajout-vuln.png)
+
+**3. Retrait de la vulnérabilité : ✅**
+
+![Retrait de la vulnérabilité](captures/1-retrait-vuln.png)
+
+**4. Modification d'un fichier déjà vulnérable : ✅**, le finding préexistant ne bloque pas le build.
+
+![Modification d'un fichier déjà vulnérable](captures/1-fichier-deja-vulnerable.png)
 
 ## 2. Les 7 vulnérabilités injectées
 
@@ -63,7 +79,17 @@ Elle ne se déclenche qu'avec le nom complet `java.lang.Runtime.getRuntime().exe
 comme instruction seule. C'est un faux négatif de Semgrep : la même vulnérabilité écrite
 normalement passerait le contrôle.
 
-Captures : TODO (dont la PR `vulnerabilites` → `tache3` avec le check rouge)
+#### Captures
+
+**Les 7 runs de la branche `vulnerabilites`** : un échec par vulnérabilité, puis le commit de doc qui repasse au vert.
+
+![Liste des runs de la branche vulnerabilites](captures/2-liste-runs.png)
+
+**Détail d'un run (injection de commande)** : `semgrep` échoue, `test` (build Maven) est sauté grâce à `needs: semgrep`.
+
+![Run de l'injection de commande](captures/2-run-injection-commande.png)
+
+**PR `vulnerabilites` → `tache3`** : TODO
 
 ## 3. Comparaison avant/après
 
