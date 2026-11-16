@@ -182,6 +182,11 @@ La méthode est dans `tika-core/src/main/java/org/apache/tika/parser/external/Ex
 ligne 304. Elle est détectée par la règle
 `java.lang.security.audit.command-injection-formatted-runtime-call.command-injection-formatted-runtime-call`.
 
+On a choisi `ExternalParser` parce que c'est la classe de Tika qui lance des programmes externes (par exemple
+`ffmpeg` ou `exiftool`) pour extraire le contenu de certains formats. Une méthode utilitaire qui exécute une
+ligne de commande y est donc tout à fait à sa place, et c'est justement le genre d'endroit où une injection
+de commande peut se glisser.
+
 ```java
     public static void runShellCommand(String commandLine) throws IOException {
         java.lang.Runtime.getRuntime().exec("sh -c " + commandLine);
@@ -220,6 +225,12 @@ La méthode est dans
 à la ligne 318. Elle est détectée par la règle
 `java.lang.security.audit.formatted-sql-string.formatted-sql-string`.
 
+On a choisi `JDBCTableReader` parce que c'est la classe qui exécute les requêtes SQL du parser JDBC : Tika
+s'en sert pour lire les tables des bases de données (SQLite par exemple) qu'on lui donne à analyser, donc
+des fichiers qui viennent de l'extérieur. La classe a déjà une
+connexion et le nom de la table, donc une méthode qui compte des lignes selon un critère s'y intègre
+naturellement.
+
 ```java
     public int countRowsMatching(String column, String value) throws SQLException {
         try (Statement st = connection.createStatement();
@@ -251,6 +262,10 @@ avec un `?` pour la valeur, et une liste blanche pour le nom de colonne.
 La méthode est dans `tika-core/src/main/java/org/apache/tika/utils/XMLReaderUtils.java`, à la ligne 1313.
 Elle est détectée par la règle
 `java.lang.security.audit.xxe.documentbuilderfactory-disallow-doctype-decl-missing.documentbuilderfactory-disallow-doctype-decl-missing`.
+
+On a choisi `XMLReaderUtils` parce que c'est la classe centrale qui fournit les parseurs XML à tout Tika
+(SAX, DOM, StAX). Un raccourci pour parser du DOM « rapidement » y est plausible, et une erreur à cet
+endroit toucherait tous les formats basés sur XML (OOXML, ODF, SVG, etc.).
 
 ```java
     public static Document parseDOMQuick(InputStream is)
@@ -285,6 +300,11 @@ grave pour Tika, dont le rôle est d'analyser des fichiers qui ne sont pas fiabl
 La méthode est dans `tika-core/src/main/java/org/apache/tika/digest/InputStreamDigester.java`, à la ligne
 126. Elle est détectée par la règle `java.lang.security.audit.crypto.use-of-md5.use-of-md5`.
 
+On a choisi `InputStreamDigester` parce que c'est la classe qui calcule les empreintes (digests) des
+documents et les ajoute aux métadonnées. Tika s'en sert entre autres pour identifier les fichiers et les
+pièces jointes. Un raccourci de « checksum rapide » y a donc sa place, et c'est exactement là qu'un
+développeur pressé pourrait choisir MD5 parce que c'est rapide.
+
 ```java
     public static byte[] quickChecksum(byte[] data) throws NoSuchAlgorithmException {
         return MessageDigest.getInstance("MD5").digest(data);
@@ -309,6 +329,11 @@ peut faire passer un fichier malveillant pour un fichier connu. Il faudrait util
 
 La méthode est dans `tika-core/src/main/java/org/apache/tika/parser/CryptoParser.java`, à la ligne 113. Elle
 est détectée par la règle `java.lang.security.audit.crypto.des-is-deprecated.des-is-deprecated`.
+
+On a choisi `CryptoParser` parce que c'est la classe de Tika qui déchiffre un document avant de le passer à
+un autre parser, avec une clé et un algorithme (`Cipher`) fournis par le contexte. Une méthode qui
+déchiffre des documents dans un ancien format y est réaliste, et elle reprend les mêmes objets
+(`Cipher`, `Key`) que le reste de la classe.
 
 ```java
     protected static byte[] decryptLegacy(byte[] data, Key key) throws GeneralSecurityException {
@@ -337,6 +362,11 @@ faudrait utiliser AES-GCM.
 
 La méthode est dans `tika-core/src/main/java/org/apache/tika/config/ConfigDeserializer.java`, à la ligne 137.
 Elle est détectée par la règle `java.lang.security.audit.object-deserialization.object-deserialization`.
+
+On a choisi `ConfigDeserializer` parce que c'est la classe qui transforme la configuration des parsers et
+des détecteurs en objets Java. Aujourd'hui elle le fait depuis du JSON avec Jackson. Ajouter une méthode
+qui lit une configuration sauvegardée avec la sérialisation Java est une « fonctionnalité » crédible à cet
+endroit, et une configuration peut venir d'un fichier fourni par l'utilisateur.
 
 ```java
     public static Object readSerializedConfig(InputStream in)
@@ -367,6 +397,11 @@ un `ObjectInputFilter`.
 La méthode est dans `tika-core/src/main/java/org/apache/tika/parser/NetworkParser.java`, à la ligne 178.
 Elle est détectée par la règle
 `java.lang.security.audit.crypto.ssl.insecure-hostname-verifier.insecure-hostname-verifier`.
+
+On a choisi `NetworkParser` parce que c'est la classe qui envoie le document à un serveur distant pour qu'il
+le parse, en ouvrant une `URLConnection` vers l'URI configurée. Quand cette URI est en `https`, la
+vérification du certificat se fait justement là. Une méthode qui désactive la vérification du nom d'hôte
+« pour accepter les certificats auto-signés » est un raccourci classique dans ce genre de code client.
 
 ```java
     protected static void acceptAnyHostname(HttpsURLConnection connection) {
