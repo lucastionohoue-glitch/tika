@@ -2,10 +2,71 @@ name: Tache 2 - tests tika-core
 
 on:
   push:
+  pull_request:
   workflow_dispatch:
+    inputs:
+      baseline:
+        description: "Commit de reference pour Semgrep (vide = merge-base avec la branche par defaut)"
+        required: false
+        default: ""
 
 jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Installer Semgrep
+        run: pipx install semgrep==1.183.0
+      - name: Determiner le commit de reference
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          INPUT_BASELINE: ${{ github.event.inputs.baseline }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          case "$EVENT" in
+            pull_request) BASE="$PR_BASE" ;;
+            push)         BASE="$PUSH_BEFORE" ;;
+            *)            BASE="${INPUT_BASELINE:-}" ;;
+          esac
+
+          # Premier push d'une branche (before = 000...), force-push vers un
+          # commit absent, ou declenchement manuel sans entree : on se
+          # rabat sur le point de divergence avec la branche par defaut.
+          if [ -z "$BASE" ] || [ -z "${BASE//0/}" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            BASE=$(git merge-base HEAD "origin/$DEFAULT_BRANCH")
+          fi
+
+          # Sur la branche par defaut elle-meme, le merge-base est HEAD :
+          # on compare alors avec le commit precedent.
+          if [ "$(git rev-parse "$BASE")" = "$(git rev-parse HEAD)" ]; then
+            BASE=$(git rev-parse HEAD~1)
+          fi
+
+          echo "Commit de reference : $BASE"
+          echo "BASELINE=$BASE" >> "$GITHUB_ENV"
+      - name: Scan Semgrep differentiel
+        run: |
+          semgrep scan \
+            --config p/java \
+            --config p/security-audit \
+            --baseline-commit "$BASELINE" \
+            --error \
+            --json-output=semgrep.json
+      - name: Publier le rapport Semgrep
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep.json
+          if-no-files-found: warn
+
   test:
+    needs: semgrep
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
