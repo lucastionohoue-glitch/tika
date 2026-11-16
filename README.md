@@ -2,22 +2,18 @@
 
 [![Tache 2 - tests tika-core](https://github.com/lucastionohoue-glitch/tika/actions/workflows/tache2.yml/badge.svg?branch=tache3)](https://github.com/lucastionohoue-glitch/tika/actions/workflows/tache2.yml)
 
-Ce dépôt est un fork d'Apache Tika (4.0.0-SNAPSHOT). La documentation de la tâche 2 est dans
-[`README-tache2.md`](README-tache2.md). Les fichiers bruts de la tâche 3 (rapports Semgrep, captures) sont
-dans [`docs/tache3/`](docs/tache3/).
+Binôme : Lucas TIONOHOUE et Moussa ADAMA SOGOBA.
 
-| Nom |
-|---|
-| Lucas TIONOHOUE |
-| Moussa ADAMA SOGOBA |
+Ce dépôt est un fork d'Apache Tika (4.0.0-SNAPSHOT). La documentation de la tâche 2 a été déplacée dans
+[`README-tache2.md`](README-tache2.md). Les fichiers bruts de cette tâche (rapports Semgrep et captures
+d'écran) sont dans [`docs/tache3/`](docs/tache3/).
 
-Branches :
-
-| Branche | Rôle |
-|---|---|
-| `tache3` | Livrable : workflow Semgrep, action rickroll, documentation. Aucune vulnérabilité ajoutée. |
-| `vulnerabilites` | Les 7 vulnérabilités injectées, un commit par vulnérabilité. [PR #1](https://github.com/lucastionohoue-glitch/tika/pull/1) vers `tache3`, volontairement non fusionnée. |
-| `rickroll-demo` | Branche jetable avec un test cassé exprès pour déclencher le rickroll. |
+Le travail est réparti sur trois branches. La branche `tache3` est le livrable : elle contient le workflow
+Semgrep, l'action rickroll et cette documentation, sans aucune vulnérabilité ajoutée. La branche
+`vulnerabilites` contient les 7 vulnérabilités injectées, une par commit, et elle fait l'objet de la
+[PR #1](https://github.com/lucastionohoue-glitch/tika/pull/1) vers `tache3`, qu'on n'a volontairement pas
+fusionnée. Enfin, `rickroll-demo` est une branche jetable où un test est cassé exprès pour déclencher le
+rickroll.
 
 Sommaire :
 1. Workflow Semgrep : choix de conception
@@ -26,12 +22,10 @@ Sommaire :
 4. Comparaison avant/après
 5. Rickroll
 
----
-
 ## 1. Workflow Semgrep : choix de conception
 
-Le workflow est dans [`.github/workflows/tache2.yml`](.github/workflows/tache2.yml). Il contient deux jobs :
-`semgrep`, puis `test` (le build Maven et les tests de `tika-core` de la tâche 2).
+Le workflow se trouve dans [`.github/workflows/tache2.yml`](.github/workflows/tache2.yml). On a ajouté un job
+`semgrep` avant le job `test` qui existait déjà depuis la tâche 2 (build Maven et tests de `tika-core`).
 
 ```yaml
   semgrep:
@@ -39,11 +33,11 @@ Le workflow est dans [`.github/workflows/tache2.yml`](.github/workflows/tache2.y
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0                      # historique complet, nécessaire pour le commit de référence
+          fetch-depth: 0
       - name: Installer Semgrep
         run: pipx install semgrep==1.183.0
       - name: Determiner le commit de reference
-        ...                                   # voir « Push ou PR » plus bas
+        ...
       - name: Scan Semgrep differentiel
         run: |
           semgrep scan \
@@ -66,124 +60,127 @@ Le workflow est dans [`.github/workflows/tache2.yml`](.github/workflows/tache2.y
 
 ### Pourquoi comparer avec un commit de référence
 
-Tika contient déjà **19 résultats Semgrep** avant toute modification (voir section 4). Sans référence,
-`--error` ferait échouer **chaque** run à cause de problèmes que nous n'avons pas introduits, et le check
-rouge ne voudrait plus rien dire.
+Avant qu'on touche quoi que ce soit, Semgrep trouve déjà 19 problèmes dans Tika (voir la section 4). Si on
+lançait simplement `semgrep scan --error`, chaque run échouerait à cause de ces problèmes qu'on n'a pas
+introduits, et un check rouge ne voudrait plus rien dire.
 
-Avec `--baseline-commit <ref>`, Semgrep analyse aussi le commit de référence et ne garde que les résultats
-**absents** de celui-ci. Les problèmes existants ne bloquent donc pas le build. Seule une **nouvelle**
-vulnérabilité fait échouer le job. Ce mode a deux autres avantages :
+L'option `--baseline-commit <ref>` règle ce problème. Semgrep analyse aussi le commit de référence et ne
+garde que les résultats qui n'y étaient pas. Les problèmes déjà présents dans Tika ne bloquent donc pas le
+build, et seule une nouvelle vulnérabilité fait échouer le job. En plus, Semgrep n'analyse alors que les
+fichiers modifiés depuis la référence, ce qui fait que le job prend entre 30 et 50 secondes en CI au lieu
+d'un scan complet de plus de 2 300 fichiers. Il suit aussi un résultat quand il change de ligne : ajouter
+des imports ou un commentaire au-dessus d'un problème existant ne le fait pas passer pour un nouveau
+problème. On l'a vérifié avec le scénario 4 de la section 2, et on le revoit dans la section 4.
 
-- Il n'analyse que les fichiers modifiés depuis la référence : le job `semgrep` prend 30 à 50 secondes en CI, au lieu d'un scan complet de plus de 2 300 fichiers.
-- Il suit un résultat même s'il change de ligne : un ajout d'imports ou de commentaires au-dessus d'un problème
-  existant ne le fait pas passer pour nouveau (vérifié dans le scénario 4 et dans la section 4).
-
-`--error` fait sortir Semgrep avec un code ≠ 0 dès qu'il trouve un résultat, ce qui fait échouer le job.
-Le rapport `semgrep.json` est publié comme artefact même en cas d'échec (`if: always()`), pour voir
-le détail sans relancer le scan.
+L'option `--error` fait sortir Semgrep avec un code différent de 0 dès qu'il trouve un résultat, et c'est ce
+qui fait échouer le job. Le rapport `semgrep.json` est publié comme artefact même quand le job échoue
+(`if: always()`), ce qui permet de consulter le détail sans relancer le scan.
 
 ### Pourquoi ces règles
 
-| Config | Contenu | Pourquoi |
-|---|---|---|
-| `p/java` | Règles de sécurité spécifiques à Java (`java.lang.security.*`) | Tika est écrit en Java. |
-| `p/security-audit` | Règles d'audit plus larges : crypto, XXE, désérialisation, injections, TLS, pour plusieurs langages | Elle couvre les 7 familles de vulnérabilités demandées, et aussi les scripts Python et les templates HTML du dépôt. |
+On utilise deux ensembles de règles du registre Semgrep. `p/java` contient les règles de sécurité propres à
+Java (`java.lang.security.*`), ce qui est le minimum pour un projet comme Tika. `p/security-audit` est plus
+large : il couvre la cryptographie, les XXE, la désérialisation, les injections et la validation TLS, donc
+les 7 familles de vulnérabilités demandées, et il analyse aussi les scripts Python et les templates HTML
+du dépôt. Ensemble, ça fait 174 règles.
 
-Ensemble, elles donnent 174 règles. La version de Semgrep est fixée à `1.183.0` : de cette façon, la CI et
-les rapports produits en local (section 4) utilisent exactement les mêmes règles et le même moteur.
+On a fixé la version de Semgrep à 1.183.0 pour que la CI et les rapports produits en local (section 4)
+utilisent exactement le même moteur et les mêmes règles.
 
 ### Push ou PR : quel commit de référence
 
-| Événement | Commit de référence | Ce qu'on vérifie |
-|---|---|---|
-| `pull_request` | `github.event.pull_request.base.sha` (base de la PR) | Toutes les nouvelles vulnérabilités de la PR, d'un coup. |
-| `push` | `github.event.before` (commit précédent) | Seulement ce qu'ajoute le push. |
-| Premier push d'une branche (`before` = `000…0`), force-push vers un commit inconnu, lancement manuel sans entrée | `git merge-base HEAD origin/<branche par défaut>` | Tout ce que la branche ajoute depuis qu'elle a divergé. |
-| Push sur la branche par défaut elle-même (le `merge-base` est `HEAD`) | `HEAD~1` | Le dernier commit. |
+Le commit de référence dépend de ce qui déclenche le workflow. Pour une pull request, c'est la base de la PR
+(`github.event.pull_request.base.sha`), ce qui fait que le check voit d'un coup toutes les nouvelles
+vulnérabilités de la PR. Pour un push, c'est le commit précédent (`github.event.before`), donc on ne vérifie
+que ce que le push ajoute.
 
-Les valeurs venant de GitHub (`github.event.*`) passent par des variables d'environnement et ne sont pas
-injectées directement dans le script `run:`. Ça évite une injection de commande dans le workflow lui-même.
+Il y a deux cas particuliers. Au premier push d'une nouvelle branche, GitHub met `before` à `000…0`, et après
+un force-push, `before` peut désigner un commit qui n'existe plus. Dans ces deux cas, comme pour un
+lancement manuel sans paramètre, on prend le point de divergence avec la branche par défaut
+(`git merge-base HEAD origin/<branche par défaut>`), ce qui revient à vérifier tout ce que la branche
+ajoute. Si on est sur la branche par défaut elle-même, ce point de divergence est `HEAD`, et on compare
+alors avec `HEAD~1`.
 
-### `needs: semgrep`
+Les valeurs qui viennent de GitHub (`github.event.*`) sont passées au script par des variables
+d'environnement, au lieu d'être collées directement dans le bloc `run:`. Ça évite une injection de
+commande dans le workflow lui-même, par exemple avec un nom de branche malveillant.
 
-Le job `test` déclare `needs: semgrep`. Si Semgrep trouve une nouvelle vulnérabilité, le build Maven ne démarre
-même pas : il apparaît comme « skipped ».
+### Pourquoi `needs: semgrep`
 
-Le job `semgrep` est dans le même fichier que le build plutôt que dans un `semgrep.yml` séparé, parce que
-`needs` ne fonctionne qu'entre jobs **d'un même workflow**. Un workflow séparé tournerait en parallèle et ne
-pourrait pas empêcher le build de partir.
-
----
+Le job `test` déclare `needs: semgrep`. Quand Semgrep trouve une nouvelle vulnérabilité, le build Maven ne
+démarre même pas et apparaît comme « skipped ». C'est aussi pour ça qu'on a mis le job Semgrep dans le
+même fichier que le build plutôt que dans un `semgrep.yml` séparé : `needs` ne fonctionne qu'entre jobs
+d'un même workflow. Un workflow séparé tournerait en parallèle et ne pourrait pas empêcher le build de
+partir.
 
 ## 2. Workflow Semgrep : validation
 
-Commits sur la branche `tache3` :
+On a testé le workflow avec quatre commits successifs sur la branche `tache3` :
 
-| # | Scénario | Commit | Attendu | Obtenu | Run |
-|---|---|---|---|---|---|
-| 1 | Commit propre (ajout du workflow) | `e18965515` | ✅ | ✅ | [43890820162](https://github.com/lucastionohoue-glitch/tika/actions/runs/43890820162) |
-| 2 | Ajout d'une vulnérabilité (`Tache3Vulnerable.java` : MD5 + DES) | `211e03147` | ❌ | ❌ | [43891730445](https://github.com/lucastionohoue-glitch/tika/actions/runs/43891730445) |
-| 3 | Retrait de cette vulnérabilité | `6318fac6a` | ✅ | ✅ | [43892089807](https://github.com/lucastionohoue-glitch/tika/actions/runs/43892089807) |
-| 4 | Modification de `MimeTypesReader.java`, qui contient déjà un résultat (`saxparserfactory-disallow-doctype-decl-missing`), sans rien ajouter de vulnérable | `9b72a518e` | ✅ | ✅ | [43893133402](https://github.com/lucastionohoue-glitch/tika/actions/runs/43893133402) |
+| Scénario | Commit | Résultat attendu | Résultat obtenu | Run |
+|---|---|---|---|---|
+| Commit propre (ajout du workflow) | `e18965515` | succès | succès | [43890820162](https://github.com/lucastionohoue-glitch/tika/actions/runs/43890820162) |
+| Ajout de `Tache3Vulnerable.java` (MD5 et DES) | `211e03147` | échec | échec | [43891730445](https://github.com/lucastionohoue-glitch/tika/actions/runs/43891730445) |
+| Retrait de ce fichier | `6318fac6a` | succès | succès | [43892089807](https://github.com/lucastionohoue-glitch/tika/actions/runs/43892089807) |
+| Modification de `MimeTypesReader.java`, déjà vulnérable, sans rien ajouter de vulnérable | `9b72a518e` | succès | succès | [43893133402](https://github.com/lucastionohoue-glitch/tika/actions/runs/43893133402) |
 
-Le scénario 4 montre que la comparaison avec la référence fonctionne : le fichier modifié contient un
-résultat préexistant, mais comme il existe déjà dans le commit de référence, il ne bloque pas le build.
+Le dernier scénario est celui qui montre que la comparaison avec la référence fonctionne.
+`MimeTypesReader.java` contenait déjà un résultat (`saxparserfactory-disallow-doctype-decl-missing`) avant
+notre travail. On a modifié le fichier juste au-dessus de la ligne concernée, et comme ce résultat existait
+déjà dans le commit de référence, il n'a pas bloqué le build.
 
-**Scénario 1 : commit propre, ✅.** Les deux jobs passent.
+Le commit propre passe ses deux jobs :
 
 ![Commit propre](docs/tache3/captures/1-commit-propre.png)
 
-**Scénario 2 : ajout d'une vulnérabilité, ❌.** `semgrep` échoue (exit code 1) et `test` est sauté.
+Quand on ajoute la vulnérabilité, `semgrep` échoue avec le code de sortie 1 et `test` est sauté :
 
 ![Ajout d'une vulnérabilité](docs/tache3/captures/1-ajout-vuln.png)
 
-**Scénario 3 : retrait de la vulnérabilité, ✅.**
+Une fois le fichier retiré, tout repasse :
 
 ![Retrait de la vulnérabilité](docs/tache3/captures/1-retrait-vuln.png)
 
-**Scénario 4 : modification d'un fichier déjà vulnérable, ✅.**
+Et la modification du fichier déjà vulnérable passe aussi :
 
 ![Modification d'un fichier déjà vulnérable](docs/tache3/captures/1-fichier-deja-vulnerable.png)
 
----
-
 ## 3. Les 7 vulnérabilités
 
-Elles sont sur la branche `vulnerabilites`, avec un commit par vulnérabilité. Chaque push est comparé au
-commit précédent, donc chaque run ne rapporte que la vulnérabilité ajoutée par ce commit. Dans les 7 runs,
-c'est l'étape « Scan Semgrep differentiel » qui échoue, et `test` est sauté.
+Les vulnérabilités sont sur la branche `vulnerabilites`, avec un commit par vulnérabilité. Chaque push est
+comparé au commit précédent, donc chaque run ne rapporte que la vulnérabilité ajoutée par ce commit. Dans
+les 7 runs, c'est l'étape « Scan Semgrep differentiel » qui échoue, et le job `test` est sauté. Chaque
+vulnérabilité est une méthode ajoutée dans une classe existante de Tika, à un endroit où ce code serait
+plausible, et l'ensemble compile (`mvn -pl tika-core,…/tika-parser-jdbc-commons -am compile`).
 
-Chaque vulnérabilité est une méthode ajoutée dans une classe existante, à un endroit où ce code serait
-plausible. Le code compile (`mvn -pl tika-core,…/tika-parser-jdbc-commons -am compile`).
-
-| # | Type | CWE | Fichier | Sévérité | Commit | Run |
+| | Type | CWE | Fichier et ligne | Sévérité | Commit | Run |
 |---|---|---|---|---|---|---|
-| 3.1 | Injection de commande | CWE-78 | `ExternalParser.java` | ERROR | `bfcd8bdae` | [❌](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904205356) |
-| 3.2 | Injection SQL | CWE-89 | `JDBCTableReader.java` | ERROR | `d62240bd5` | [❌](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904503772) |
-| 3.3 | XXE | CWE-611 | `XMLReaderUtils.java` | ERROR | `92802816b` | [❌](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904636969) |
-| 3.4 | Hash faible (MD5) | CWE-328 | `InputStreamDigester.java` | WARNING | `5dc11e324` | [❌](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904750948) |
-| 3.5 | Chiffrement faible (DES) | CWE-326 | `CryptoParser.java` | WARNING | `6954b935f` | [❌](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904858414) |
-| 3.6 | Désérialisation non sûre | CWE-502 | `ConfigDeserializer.java` | WARNING | `ebdca7871` | [❌](https://github.com/lucastionohoue-glitch/tika/actions/runs/43905837408) |
-| 3.7 | TLS non vérifié | CWE-295 | `NetworkParser.java` | WARNING | `7c1ac577b` | [❌](https://github.com/lucastionohoue-glitch/tika/actions/runs/43905928719) |
+| 3.1 | Injection de commande | CWE-78 | `ExternalParser.java:304` | ERROR | `bfcd8bdae` | [43904205356](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904205356) |
+| 3.2 | Injection SQL | CWE-89 | `JDBCTableReader.java:318` | ERROR | `d62240bd5` | [43904503772](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904503772) |
+| 3.3 | XXE | CWE-611 | `XMLReaderUtils.java:1313` | ERROR | `92802816b` | [43904636969](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904636969) |
+| 3.4 | Hash faible (MD5) | CWE-328 | `InputStreamDigester.java:126` | WARNING | `5dc11e324` | [43904750948](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904750948) |
+| 3.5 | Chiffrement faible (DES) | CWE-326 | `CryptoParser.java:113` | WARNING | `6954b935f` | [43904858414](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904858414) |
+| 3.6 | Désérialisation non sûre | CWE-502 | `ConfigDeserializer.java:137` | WARNING | `ebdca7871` | [43905837408](https://github.com/lucastionohoue-glitch/tika/actions/runs/43905837408) |
+| 3.7 | TLS non vérifié | CWE-295 | `NetworkParser.java:178` | WARNING | `7c1ac577b` | [43905928719](https://github.com/lucastionohoue-glitch/tika/actions/runs/43905928719) |
 
-**Les 7 runs de la branche `vulnerabilites`** (un échec par vulnérabilité ; le dernier commit, qui ne
-contient que de la doc, repasse au vert) :
+La liste des runs de la branche montre un échec par vulnérabilité. Le dernier commit, qui ne contient que
+de la documentation, repasse au vert :
 
 ![Liste des runs de la branche vulnerabilites](docs/tache3/captures/2-liste-runs.png)
 
-**La PR [#1](https://github.com/lucastionohoue-glitch/tika/pull/1) `vulnerabilites` → `tache3`**
-([run `pull_request`](https://github.com/lucastionohoue-glitch/tika/actions/runs/43909607310)).
-Pour une PR, la référence est la base (`tache3`), donc `semgrep (pull_request)` voit les 7 vulnérabilités
-d'un coup et échoue. Les checks `push` du dernier commit passent, puisqu'ils ne comparent qu'au commit
-précédent.
+On a aussi ouvert la [PR #1](https://github.com/lucastionohoue-glitch/tika/pull/1) de `vulnerabilites` vers
+`tache3` ([run `pull_request`](https://github.com/lucastionohoue-glitch/tika/actions/runs/43909607310)).
+Pour une PR, la référence est la base, donc le check `semgrep (pull_request)` voit les 7 vulnérabilités
+d'un coup et échoue. Les checks `push` du dernier commit passent quand même, puisqu'ils ne comparent ce
+commit qu'au précédent.
 
 ![PR avec le check Semgrep rouge](docs/tache3/captures/2-pr-check-rouge.png)
 
 ### 3.1 Injection de commande (CWE-78)
 
-- **Fichier :** `tika-core/src/main/java/org/apache/tika/parser/external/ExternalParser.java`, ligne 304
-- **Règle :** `java.lang.security.audit.command-injection-formatted-runtime-call.command-injection-formatted-runtime-call`
-- **Commit / run :** `bfcd8bdae` / [43904205356](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904205356)
+La méthode est dans `tika-core/src/main/java/org/apache/tika/parser/external/ExternalParser.java`, à la
+ligne 304. Elle est détectée par la règle
+`java.lang.security.audit.command-injection-formatted-runtime-call.command-injection-formatted-runtime-call`.
 
 ```java
     public static void runShellCommand(String commandLine) throws IOException {
@@ -191,12 +188,11 @@ précédent.
     }
 ```
 
-**Pourquoi c'est vulnérable :** la chaîne est concaténée puis passée à un shell. `ExternalParser` lance des
-outils externes sur des documents. Si `commandLine` contient une partie contrôlée par l'utilisateur, comme
-un nom de fichier, une valeur telle que `x; rm -rf ~` exécute une commande arbitraire. Il faudrait passer un
-tableau d'arguments à `ProcessBuilder`, sans shell.
+La chaîne est concaténée puis passée à un shell. `ExternalParser` sert à lancer des outils externes sur des
+documents, donc il est réaliste que `commandLine` contienne une partie contrôlée par l'utilisateur, comme
+un nom de fichier. Une valeur comme `x; rm -rf ~` exécuterait alors une commande arbitraire. La bonne
+façon de faire serait de passer un tableau d'arguments à `ProcessBuilder`, sans passer par un shell.
 
-**Sortie Semgrep :**
 ```
     tika-core\src\main\java\org\apache\tika\parser\external\ExternalParser.java
    ❯❯❱ java.lang.security.audit.command-injection-formatted-runtime-call.command-injection-formatted-runtime-call
@@ -207,21 +203,22 @@ tableau d'arguments à `ProcessBuilder`, sans shell.
           304┆ java.lang.Runtime.getRuntime().exec("sh -c " + commandLine);
 ```
 
-**Détail du run :**
+Voici le détail du run correspondant :
 
 ![Run de l'injection de commande](docs/tache3/captures/2-run-injection-commande.png)
 
-**Limite de Semgrep observée :** la règle ne détecte **pas** l'écriture habituelle
-`Runtime.getRuntime().exec("sh -c " + x)`, ni un `return Runtime.getRuntime().exec(...)`. Nous l'avons
-vérifié en local sur plusieurs variantes. Elle ne se déclenche qu'avec le nom complet
-`java.lang.Runtime.getRuntime()`, utilisé comme instruction seule. C'est un faux négatif : la même
-vulnérabilité, écrite normalement, passerait le contrôle sans être signalée.
+On a remarqué une limite de Semgrep en écrivant cette vulnérabilité. La règle ne détecte pas l'écriture
+habituelle `Runtime.getRuntime().exec("sh -c " + x)`, ni un `return Runtime.getRuntime().exec(...)`. On l'a
+vérifié en local sur plusieurs variantes : elle ne se déclenche qu'avec le nom complet
+`java.lang.Runtime.getRuntime()` utilisé comme instruction seule. C'est un faux négatif, puisque la même
+vulnérabilité écrite normalement passerait le contrôle sans être signalée.
 
 ### 3.2 Injection SQL (CWE-89)
 
-- **Fichier :** `tika-parsers/tika-parsers-standard/tika-parsers-standard-modules/tika-parser-jdbc-commons/src/main/java/org/apache/tika/parser/jdbc/JDBCTableReader.java`, ligne 318
-- **Règle :** `java.lang.security.audit.formatted-sql-string.formatted-sql-string`
-- **Commit / run :** `d62240bd5` / [43904503772](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904503772)
+La méthode est dans
+`tika-parsers/tika-parsers-standard/tika-parsers-standard-modules/tika-parser-jdbc-commons/src/main/java/org/apache/tika/parser/jdbc/JDBCTableReader.java`,
+à la ligne 318. Elle est détectée par la règle
+`java.lang.security.audit.formatted-sql-string.formatted-sql-string`.
 
 ```java
     public int countRowsMatching(String column, String value) throws SQLException {
@@ -233,12 +230,11 @@ vulnérabilité, écrite normalement, passerait le contrôle sans être signalé
     }
 ```
 
-**Pourquoi c'est vulnérable :** `value` est inséré directement entre apostrophes dans la requête. Avec
-`value = "' OR '1'='1"`, la condition devient toujours vraie. Avec une base SQLite fournie par l'utilisateur,
-ce qui est exactement le cas du parser JDBC de Tika, on peut aussi modifier la requête. Il faudrait un
-`PreparedStatement` avec `?` pour la valeur, et une liste blanche pour le nom de colonne.
+La valeur est insérée directement entre apostrophes dans la requête. Avec `value = "' OR '1'='1"`, la
+condition devient toujours vraie, et plus généralement on peut réécrire la requête. Le parser JDBC de Tika
+travaille justement sur des bases SQLite fournies par l'utilisateur. Il faudrait un `PreparedStatement`
+avec un `?` pour la valeur, et une liste blanche pour le nom de colonne.
 
-**Sortie Semgrep :**
 ```
     tika-parsers\...\tika-parser-jdbc-commons\src\main\java\org\apache\tika\parser\jdbc\JDBCTableReader.java
    ❯❯❱ java.lang.security.audit.formatted-sql-string.formatted-sql-string
@@ -252,9 +248,9 @@ ce qui est exactement le cas du parser JDBC de Tika, on peut aussi modifier la r
 
 ### 3.3 XXE : entités XML externes (CWE-611)
 
-- **Fichier :** `tika-core/src/main/java/org/apache/tika/utils/XMLReaderUtils.java`, ligne 1313
-- **Règle :** `java.lang.security.audit.xxe.documentbuilderfactory-disallow-doctype-decl-missing.documentbuilderfactory-disallow-doctype-decl-missing`
-- **Commit / run :** `92802816b` / [43904636969](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904636969)
+La méthode est dans `tika-core/src/main/java/org/apache/tika/utils/XMLReaderUtils.java`, à la ligne 1313.
+Elle est détectée par la règle
+`java.lang.security.audit.xxe.documentbuilderfactory-disallow-doctype-decl-missing.documentbuilderfactory-disallow-doctype-decl-missing`.
 
 ```java
     public static Document parseDOMQuick(InputStream is)
@@ -265,15 +261,13 @@ ce qui est exactement le cas du parser JDBC de Tika, on peut aussi modifier la r
     }
 ```
 
-**Pourquoi c'est vulnérable :** la fabrique est créée avec ses réglages par défaut, qui acceptent les
-`DOCTYPE` et les entités externes. Un document XML contenant
-`<!ENTITY x SYSTEM "file:///etc/passwd">` fait lire un fichier local au parser, et une URL `http://` lui fait
-faire une requête vers un serveur interne (SSRF). C'est grave pour Tika, qui analyse des fichiers non fiables.
-Les autres méthodes de `XMLReaderUtils` configurent leurs fabriques en mode sécurisé
-(`XMLConstants.FEATURE_SECURE_PROCESSING`, `XMLInputFactory.SUPPORT_DTD` à `false`). Cette méthode
-contourne cette configuration.
+La fabrique est créée avec ses réglages par défaut, qui acceptent les `DOCTYPE` et les entités externes. Un
+document XML qui contient `<!ENTITY x SYSTEM "file:///etc/passwd">` fait lire un fichier local au parser,
+et avec une URL `http://`, on peut lui faire envoyer une requête vers un serveur interne (SSRF). C'est
+grave pour Tika, dont le rôle est d'analyser des fichiers qui ne sont pas fiables. Les autres méthodes de
+`XMLReaderUtils` configurent leurs fabriques en mode sécurisé (`XMLConstants.FEATURE_SECURE_PROCESSING`,
+`XMLInputFactory.SUPPORT_DTD` à `false`), et celle-ci contourne cette configuration.
 
-**Sortie Semgrep :**
 ```
     tika-core\src\main\java\org\apache\tika\utils\XMLReaderUtils.java
    ❯❯❱ java.lang.security.audit.xxe.documentbuilderfactory-disallow-doctype-decl-missing...
@@ -288,9 +282,8 @@ contourne cette configuration.
 
 ### 3.4 Hash faible : MD5 (CWE-328)
 
-- **Fichier :** `tika-core/src/main/java/org/apache/tika/digest/InputStreamDigester.java`, ligne 126
-- **Règle :** `java.lang.security.audit.crypto.use-of-md5.use-of-md5`
-- **Commit / run :** `5dc11e324` / [43904750948](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904750948)
+La méthode est dans `tika-core/src/main/java/org/apache/tika/digest/InputStreamDigester.java`, à la ligne
+126. Elle est détectée par la règle `java.lang.security.audit.crypto.use-of-md5.use-of-md5`.
 
 ```java
     public static byte[] quickChecksum(byte[] data) throws NoSuchAlgorithmException {
@@ -298,12 +291,10 @@ contourne cette configuration.
     }
 ```
 
-**Pourquoi c'est vulnérable :** MD5 n'est pas résistant aux collisions. On peut fabriquer en quelques secondes
-deux fichiers différents qui ont la même empreinte. Si cette somme sert à dédupliquer ou à identifier des
-pièces jointes, un attaquant peut faire passer un fichier malveillant pour un fichier connu. Il faudrait
-utiliser SHA-256 ou mieux.
+MD5 n'est pas résistant aux collisions : on peut fabriquer en quelques secondes deux fichiers différents qui
+ont la même empreinte. Si cette somme sert à dédupliquer ou à identifier des pièces jointes, un attaquant
+peut faire passer un fichier malveillant pour un fichier connu. Il faudrait utiliser SHA-256 ou mieux.
 
-**Sortie Semgrep :**
 ```
     tika-core\src\main\java\org\apache\tika\digest\InputStreamDigester.java
     ❯❱ java.lang.security.audit.crypto.use-of-md5.use-of-md5
@@ -316,9 +307,8 @@ utiliser SHA-256 ou mieux.
 
 ### 3.5 Chiffrement faible : DES (CWE-326)
 
-- **Fichier :** `tika-core/src/main/java/org/apache/tika/parser/CryptoParser.java`, ligne 113
-- **Règle :** `java.lang.security.audit.crypto.des-is-deprecated.des-is-deprecated`
-- **Commit / run :** `6954b935f` / [43904858414](https://github.com/lucastionohoue-glitch/tika/actions/runs/43904858414)
+La méthode est dans `tika-core/src/main/java/org/apache/tika/parser/CryptoParser.java`, à la ligne 113. Elle
+est détectée par la règle `java.lang.security.audit.crypto.des-is-deprecated.des-is-deprecated`.
 
 ```java
     protected static byte[] decryptLegacy(byte[] data, Key key) throws GeneralSecurityException {
@@ -328,11 +318,10 @@ utiliser SHA-256 ou mieux.
     }
 ```
 
-**Pourquoi c'est vulnérable :** la clé de DES ne fait que 56 bits, ce qui se casse par force brute.
-`"DES"` sans mode explicite utilise aussi le mode ECB par défaut, qui révèle les blocs identiques et
-n'assure pas l'intégrité. Il faudrait utiliser AES-GCM.
+La clé de DES ne fait que 56 bits, ce qui se casse par force brute. De plus, `"DES"` sans mode explicite
+utilise le mode ECB par défaut, qui laisse voir les blocs identiques et ne garantit pas l'intégrité. Il
+faudrait utiliser AES-GCM.
 
-**Sortie Semgrep :**
 ```
     tika-core\src\main\java\org\apache\tika\parser\CryptoParser.java
     ❯❱ java.lang.security.audit.crypto.des-is-deprecated.des-is-deprecated
@@ -346,9 +335,8 @@ n'assure pas l'intégrité. Il faudrait utiliser AES-GCM.
 
 ### 3.6 Désérialisation non sûre (CWE-502)
 
-- **Fichier :** `tika-core/src/main/java/org/apache/tika/config/ConfigDeserializer.java`, ligne 137
-- **Règle :** `java.lang.security.audit.object-deserialization.object-deserialization`
-- **Commit / run :** `ebdca7871` / [43905837408](https://github.com/lucastionohoue-glitch/tika/actions/runs/43905837408)
+La méthode est dans `tika-core/src/main/java/org/apache/tika/config/ConfigDeserializer.java`, à la ligne 137.
+Elle est détectée par la règle `java.lang.security.audit.object-deserialization.object-deserialization`.
 
 ```java
     public static Object readSerializedConfig(InputStream in)
@@ -359,13 +347,12 @@ n'assure pas l'intégrité. Il faudrait utiliser AES-GCM.
     }
 ```
 
-**Pourquoi c'est vulnérable :** `readObject()` instancie n'importe quelle classe sérialisable présente dans
-le classpath, avant même qu'on vérifie le type du résultat. Avec des « gadget chains » (par exemple des
-bibliothèques comme Commons Collections), un flux forgé suffit pour exécuter du code à distance. Il faudrait
-lire la configuration en JSON, comme le fait déjà `ConfigDeserializer` avec Jackson, ou au minimum filtrer
-les classes avec un `ObjectInputFilter`.
+`readObject()` instancie n'importe quelle classe sérialisable présente dans le classpath, avant même qu'on
+puisse vérifier le type du résultat. Avec des « gadget chains » tirées de bibliothèques comme Commons
+Collections, un flux forgé suffit pour exécuter du code à distance. Il faudrait lire la configuration en
+JSON, comme `ConfigDeserializer` le fait déjà avec Jackson, ou au minimum filtrer les classes acceptées avec
+un `ObjectInputFilter`.
 
-**Sortie Semgrep :**
 ```
     tika-core\src\main\java\org\apache\tika\config\ConfigDeserializer.java
     ❯❱ java.lang.security.audit.object-deserialization.object-deserialization
@@ -377,9 +364,9 @@ les classes avec un `ObjectInputFilter`.
 
 ### 3.7 TLS non vérifié (CWE-295)
 
-- **Fichier :** `tika-core/src/main/java/org/apache/tika/parser/NetworkParser.java`, ligne 178
-- **Règle :** `java.lang.security.audit.crypto.ssl.insecure-hostname-verifier.insecure-hostname-verifier`
-- **Commit / run :** `7c1ac577b` / [43905928719](https://github.com/lucastionohoue-glitch/tika/actions/runs/43905928719)
+La méthode est dans `tika-core/src/main/java/org/apache/tika/parser/NetworkParser.java`, à la ligne 178.
+Elle est détectée par la règle
+`java.lang.security.audit.crypto.ssl.insecure-hostname-verifier.insecure-hostname-verifier`.
 
 ```java
     protected static void acceptAnyHostname(HttpsURLConnection connection) {
@@ -392,12 +379,11 @@ les classes avec un `ObjectInputFilter`.
     }
 ```
 
-**Pourquoi c'est vulnérable :** le vérificateur accepte n'importe quel nom d'hôte. Un certificat valide pour
-`attaquant.com` est donc accepté pour une connexion vers `serveur-tika.interne`. Un attaquant en position
-d'homme du milieu peut lire et modifier les documents envoyés au serveur de parsing. Il faudrait garder le
-vérificateur par défaut.
+Ce vérificateur accepte n'importe quel nom d'hôte, donc un certificat valide pour `attaquant.com` est
+accepté pour une connexion vers `serveur-tika.interne`. Un attaquant placé entre le client et le serveur
+(homme du milieu) peut alors lire et modifier les documents envoyés au serveur de parsing. Il faudrait
+simplement garder le vérificateur par défaut.
 
-**Sortie Semgrep :**
 ```
     tika-core\src\main\java\org\apache\tika\parser\NetworkParser.java
     ❯❱ java.lang.security.audit.crypto.ssl.insecure-hostname-verifier.insecure-hostname-verifier
@@ -412,76 +398,41 @@ vérificateur par défaut.
           183┆ });
 ```
 
----
-
 ## 4. Comparaison avant/après
 
-Rapports produits en local avec Semgrep 1.183.0, `--config p/java --config p/security-audit` :
-
-| Rapport | Contenu |
-|---|---|
-| [`semgrep-avant.json`](docs/tache3/semgrep-avant.json) / [`.txt`](docs/tache3/semgrep-avant.txt) | Scan complet du commit de départ `bbf47f0b2`, fin de la tâche 2. |
-| [`semgrep-apres.json`](docs/tache3/semgrep-apres.json) | Scan complet de la branche `vulnerabilites` (`7c1ac577b`). |
-| [`semgrep-nouvelles.txt`](docs/tache3/semgrep-nouvelles.txt) | Seulement les nouveaux résultats : `semgrep scan ... --baseline-commit bbf47f0b2 --text`. |
+On a produit les rapports en local avec Semgrep 1.183.0 et les mêmes règles que la CI
+(`--config p/java --config p/security-audit`). Le rapport de départ
+([`semgrep-avant.json`](docs/tache3/semgrep-avant.json), et sa version texte
+[`semgrep-avant.txt`](docs/tache3/semgrep-avant.txt)) est un scan complet du commit `bbf47f0b2`, qui
+correspond à la fin de la tâche 2. Le rapport d'arrivée ([`semgrep-apres.json`](docs/tache3/semgrep-apres.json))
+est un scan complet de la branche `vulnerabilites` au commit `7c1ac577b`. Enfin,
+[`semgrep-nouvelles.txt`](docs/tache3/semgrep-nouvelles.txt) ne contient que les nouveaux résultats, obtenus
+avec `semgrep scan --config p/java --config p/security-audit --baseline-commit bbf47f0b2 --text`.
 
 | | Total | ERROR | WARNING | Java | Python | Templates HTML |
 |---|---|---|---|---|---|---|
 | Avant | 19 | 6 | 13 | 13 | 3 | 3 |
 | Après | 26 | 9 | 17 | 20 | 3 | 3 |
-| Nouveaux (`--baseline-commit`) | **7** | 3 | 4 | 7 | 0 | 0 |
+| Nouveaux | 7 | 3 | 4 | 7 | 0 | 0 |
 
-On a bien 26 − 19 = 7 : les 19 résultats de départ sont toujours là, avec exactement un nouveau résultat par
-vulnérabilité injectée.
+On passe de 19 à 26 résultats, et le scan avec référence en trouve exactement 7 nouveaux : les 19 résultats
+de départ sont toujours là, avec un résultat de plus par vulnérabilité injectée. Ces 7 résultats sont ceux
+du tableau de la section 3, avec les mêmes fichiers, lignes et sévérités.
 
-Deux résultats préexistants ont changé de ligne :
-- `NetworkParser.java` passe de la ligne 68 à la ligne 71, à cause des imports ajoutés.
-- `MimeTypesReader.java` passe de la ligne 223 à la ligne 224, à cause du commentaire du scénario 4.
-
-Semgrep les reconnaît quand même comme anciens : ils ne figurent pas dans les nouveaux résultats.
-
-| # | Règle | Fichier | Ligne | Sévérité |
-|---|---|---|---|---|
-| 1 | `command-injection-formatted-runtime-call` | `tika-core/.../parser/external/ExternalParser.java` | 304 | ERROR |
-| 2 | `formatted-sql-string` | `tika-parser-jdbc-commons/.../parser/jdbc/JDBCTableReader.java` | 318 | ERROR |
-| 3 | `documentbuilderfactory-disallow-doctype-decl-missing` | `tika-core/.../utils/XMLReaderUtils.java` | 1313 | ERROR |
-| 4 | `use-of-md5` | `tika-core/.../digest/InputStreamDigester.java` | 126 | WARNING |
-| 5 | `des-is-deprecated` | `tika-core/.../parser/CryptoParser.java` | 113 | WARNING |
-| 6 | `object-deserialization` | `tika-core/.../config/ConfigDeserializer.java` | 137 | WARNING |
-| 7 | `insecure-hostname-verifier` | `tika-core/.../parser/NetworkParser.java` | 178 | WARNING |
-
-Les identifiants complets des règles sont dans la section 3. Les 58 erreurs d'analyse sont les mêmes avant
-et après : ce sont des fichiers que Semgrep n'arrive pas à analyser, sans lien avec nos modifications.
-
----
+Deux résultats qui existaient déjà ont changé de ligne. Celui de `NetworkParser.java` est passé de la ligne
+68 à la ligne 71 à cause des imports qu'on a ajoutés, et celui de `MimeTypesReader.java` de la ligne 223 à
+la ligne 224 à cause du commentaire du scénario 4. Semgrep les reconnaît quand même comme anciens, puisqu'ils
+ne font pas partie des nouveaux résultats. Les 58 erreurs d'analyse, qui correspondent à des fichiers que
+Semgrep n'arrive pas à analyser, sont les mêmes avant et après.
 
 ## 5. Rickroll
 
-### Implémentation
+On a écrit une action composite locale et réutilisable,
+[`.github/actions/rickroll/action.yml`](.github/actions/rickroll/action.yml). Elle écrit un message dans le
+log, ajoute une annotation avec le lien de la vidéo, et place dans le résumé du run un titre avec la
+miniature cliquable de la vidéo (via `$GITHUB_STEP_SUMMARY`).
 
-Une action composite locale et réutilisable :
-[`.github/actions/rickroll/action.yml`](.github/actions/rickroll/action.yml).
-
-```yaml
-name: Rickroll
-description: Never gonna let your tests fail silently
-runs:
-  using: composite
-  steps:
-    - shell: bash
-      run: |
-        echo "🎵 Never gonna give you up, never gonna let you down..."
-        echo "::warning title=Rickroll::Des tests ont échoué : https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-        {
-          echo "## 🎵 Des tests ont échoué"
-          ...
-          echo "[![Rickroll](https://img.youtube.com/vi/dQw4w9WgXcQ/0.jpg)](https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
-        } >> "$GITHUB_STEP_SUMMARY"
-```
-
-Elle écrit un message dans le log, ajoute une annotation avec le lien, et place un titre et la miniature
-cliquable de la vidéo dans le résumé du run.
-
-Dans le job `test`, elle est appelée juste après les tests :
+Elle est appelée dans le job `test`, juste après l'étape des tests :
 
 ```yaml
       - name: Tests tika-core
@@ -492,27 +443,22 @@ Dans le job `test`, elle est appelée juste après les tests :
         uses: ./.github/actions/rickroll
 ```
 
-`failure()` seul serait aussi vrai si c'est l'étape de compilation qui échoue. Ajouter
-`steps.tests.outcome == 'failure'` limite le rickroll au cas demandé : un test qui échoue.
+La condition `failure()` seule serait vraie aussi si c'était la compilation qui échouait. En ajoutant
+`steps.tests.outcome == 'failure'`, le rickroll ne se déclenche que si ce sont les tests qui échouent.
 
-### Validation
+Pour le valider, on a cassé exprès un test de `tika-core` sur la branche jetable `rickroll-demo` : dans
+`CharsetUtilsTest.testCleaningCharsetName`, on a remplacé `"UTF-8"` par `"UTF-16"` à la ligne 45 (commit
+`a12ab40dd`). Dans le [run 43911279637](https://github.com/lucastionohoue-glitch/tika/actions/runs/43911279637),
+`semgrep` passe puisqu'on n'a ajouté aucune vulnérabilité. Le job `test` échoue ensuite avec
+`CharsetUtilsTest.testCleaningCharsetName:45 expected: <UTF-16> but was: <UTF-8>`, et l'étape « Rickroll si
+un test echoue » s'exécute. Sur `tache3`, où tous les tests passent, cette étape est sautée
+([run 43911100649](https://github.com/lucastionohoue-glitch/tika/actions/runs/43911100649), commit
+`940591c89`).
 
-Sur la branche jetable `rickroll-demo`, un test de `tika-core` est cassé exprès : dans
-`CharsetUtilsTest.testCleaningCharsetName`, à la ligne 45, `"UTF-8"` est remplacé par `"UTF-16"`
-(commit `a12ab40dd`).
-
-[Run 43911279637](https://github.com/lucastionohoue-glitch/tika/actions/runs/43911279637) :
-- `semgrep` ✅, puisqu'il n'y a aucune nouvelle vulnérabilité ;
-- `test` ❌, avec `CharsetUtilsTest.testCleaningCharsetName:45 expected: <UTF-16> but was: <UTF-8>` ;
-- l'étape « Rickroll si un test echoue » s'exécute ensuite.
-
-Sur `tache3`, où tous les tests passent, l'étape est sautée
-([run 43911100649](https://github.com/lucastionohoue-glitch/tika/actions/runs/43911100649), commit `940591c89` : ✅).
-
-**Résumé du run en échec :**
+Le résumé du run en échec :
 
 ![Résumé du run avec le rickroll](docs/tache3/captures/4-rickroll-resume.png)
 
-**Log du job `test` :**
+Et le log du job `test`, où on voit l'échec du test puis l'étape Rickroll :
 
 ![Log du job test avec l'étape Rickroll](docs/tache3/captures/4-rickroll-log.png)
