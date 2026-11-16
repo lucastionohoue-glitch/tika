@@ -79,4 +79,8 @@ jobs:
       - name: Build
         run: ./mvnw -B -pl tika-core -am install -DskipTests -Drat.skip=true -Dcheckstyle.skip=true -Dforbiddenapis.skip=true
       - name: Tests tika-core
+        id: tests
         run: ./mvnw -B -pl tika-core test -Drat.skip=true -Dcheckstyle.skip=true -Dforbiddenapis.skip=true
+      - name: Rickroll si un test echoue
+        if: failure() && steps.tests.outcome == 'failure'
+        uses: ./.github/actions/rickroll

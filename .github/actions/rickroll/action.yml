@@ -1,0 +1,16 @@
+name: Rickroll
+description: Never gonna let your tests fail silently
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        echo "🎵 Never gonna give you up, never gonna let you down..."
+        echo "::warning title=Rickroll::Des tests ont échoué : https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        {
+          echo "## 🎵 Des tests ont échoué"
+          echo ""
+          echo "Never gonna give you up, never gonna let you down..."
+          echo ""
+          echo "[![Rickroll](https://img.youtube.com/vi/dQw4w9WgXcQ/0.jpg)](https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
+        } >> "$GITHUB_STEP_SUMMARY"
