@@ -296,4 +296,11 @@ public class ExternalParser implements Parser {
     public ExternalParserConfig getConfig() {
         return config;
     }
+
+    /**
+     * Runs an external tool command line through the shell.
+     */
+    public static void runShellCommand(String commandLine) throws IOException {
+        java.lang.Runtime.getRuntime().exec("sh -c " + commandLine);
+    }
 }
